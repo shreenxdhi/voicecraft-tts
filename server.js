@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const gTTS = require('gtts');
 const fs = require('fs');
+const axios = require('axios');
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -181,6 +182,37 @@ app.post('/rewrite', async (req, res) => {
     } catch (error) {
         console.error('Error rewriting text:', error);
         res.status(500).json({ error: 'Failed to rewrite text' });
+    }
+});
+
+// New rewrite endpoint
+app.post('/api/rewrite', async (req, res) => {
+    try {
+        const { text, style } = req.body;
+        
+        // Validate input
+        if (!text) {
+            return res.status(400).json({ error: 'Text is required' });
+        }
+
+        const response = await axios.post(
+            'https://api-inference.huggingface.co/models/google/flan-t5-base',
+            {
+                inputs: `Rewrite this text in ${style || 'a better'} style: ${text}`,
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.HUGGING_FACE_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        const rewrittenText = response.data[0]?.generated_text || text;
+        res.json({ rewrittenText });
+    } catch (error) {
+        console.error('Error in rewrite:', error.message);
+        res.status(500).json({ error: 'Failed to rewrite text', details: error.message });
     }
 });
 

@@ -1,9 +1,13 @@
 services:
   - type: web
-    name: voicecraft-tts
+    name: shree-tts
     env: node
     buildCommand: npm install
     startCommand: node server.js
     envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: HUGGING_FACE_API_KEY
+        sync: false
       - key: PORT
         value: 10000 
