@@ -1,7 +1,7 @@
 {
-  "name": "voicecraft-tts",
+  "name": "shree-text-rewriter",
   "version": "1.0.0",
-  "description": "Modern Text-to-Speech application with Google TTS",
+  "description": "Modern text rewriting application with Hugging Face AI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,26 +12,25 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/shreenxdhi/voicecraft-tts"
+    "url": "https://github.com/shreenxdhi/shree-tts"
   },
   "keywords": [
-    "text-to-speech",
-    "tts",
-    "web-speech-api",
-    "google-tts",
-    "voice-synthesis"
+    "text-rewriting",
+    "ai",
+    "hugging-face",
+    "nlp",
+    "text-transformation"
   ],
   "author": "Shreenidhi (https://github.com/shreenxdhi)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/shreenxdhi/voicecraft-tts/issues"
+    "url": "https://github.com/shreenxdhi/shree-tts/issues"
   },
-  "homepage": "https://github.com/shreenxdhi/voicecraft-tts#readme",
+  "homepage": "https://github.com/shreenxdhi/shree-tts#readme",
   "dependencies": {
     "axios": "^1.9.0",
     "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "gtts": "^0.2.1"
+    "express": "^4.18.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
