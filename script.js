@@ -49,10 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const option = document.createElement('option');
                 option.value = voice;
                 switch(voice) {
-                    case 'en':
+                    case 'en-us':
                         option.textContent = 'Sarah (American Female)';
                         break;
-                    case 'en-gb':
+                    case 'en-in':
                         option.textContent = 'Priya (Indian Female)';
                         break;
                     default:

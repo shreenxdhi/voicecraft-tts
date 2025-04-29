@@ -9,24 +9,26 @@ const port = process.env.PORT || 3001;
 
 // Available voices with proper gTTS language codes
 const AVAILABLE_VOICES = [
-    'en',     // Sarah (American Female)
-    'en-gb'   // Priya (Indian Female)
+    'en-us',     // Sarah (American Female)
+    'en-in'      // Priya (Indian Female)
 ];
 
 // Voice configuration
 const VOICE_CONFIG = {
-    'en': {
+    'en-us': {
         name: 'Sarah',
         accent: 'American Female',
         pitch: 1.0,
         speed: 1.0,
+        lang: 'en',
         tld: 'com'  // Use .com TLD for American accent
     },
-    'en-gb': {
+    'en-in': {
         name: 'Priya',
         accent: 'Indian Female',
         pitch: 1.0,
         speed: 0.9,
+        lang: 'en',
         tld: 'co.in'  // Use .co.in TLD for Indian accent
     }
 };
@@ -156,7 +158,7 @@ app.post('/synthesize', async (req, res) => {
         const filepath = path.join(outputDir, filename);
 
         // Create gTTS instance with voice settings
-        const gtts = new gTTS(modifiedText, voice);
+        const gtts = new gTTS(modifiedText, voiceSettings.lang);
         gtts.speed = voiceSettings.speed;
         gtts.tld = voiceSettings.tld;  // Set TLD for accent variation
 
