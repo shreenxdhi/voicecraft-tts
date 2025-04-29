@@ -1,0 +1,38 @@
+{
+  "name": "voicecraft-tts",
+  "version": "1.0.0",
+  "description": "Modern Text-to-Speech application with Google TTS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shreenxdhi/voicecraft-tts"
+  },
+  "keywords": [
+    "text-to-speech",
+    "tts",
+    "web-speech-api",
+    "google-tts",
+    "voice-synthesis"
+  ],
+  "author": "Shreenidhi (https://github.com/shreenxdhi)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/shreenxdhi/voicecraft-tts/issues"
+  },
+  "homepage": "https://github.com/shreenxdhi/voicecraft-tts#readme",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "gtts": "^0.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
