@@ -258,6 +258,36 @@ button {
     transform: translateY(-2px);
 }
 
+.download-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-left: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.download-btn:hover {
+    background-color: #45a049;
+}
+
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
     .container {
         width: 95%;
@@ -268,8 +298,17 @@ button {
         grid-template-columns: 1fr;
     }
     
+    .action-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .download-btn {
+        margin-left: 0;
+        width: 100%;
+    }
+    
     button {
         width: 100%;
-        justify-content: center;
     }
 } 

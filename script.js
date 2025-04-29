@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const characterCount = document.querySelector('.character-count');
     const rewriteOptions = document.getElementById('rewrite-options');
     
-    let audioContext;
-    let currentAudioBuffer;
-    let currentAudioSource;
+    let currentAudio = null;
     
     // Update character count
     textInput.addEventListener('input', () => {
@@ -30,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
             data.voices.forEach(voice => {
                 const option = document.createElement('option');
                 option.value = voice;
-                option.textContent = voice.charAt(0).toUpperCase() + voice.slice(1);
+                option.textContent = voice === 'en-US' ? 'American English' : 'Australian English';
                 voiceSelect.appendChild(option);
             });
         } catch (error) {
@@ -39,8 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    async function synthesizeSpeech(text, voice, emotion, rate) {
+    async function synthesizeSpeech(text, voice, emotion) {
         try {
+            speakBtn.disabled = true;
+            speakBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            
             const response = await fetch('/synthesize', {
                 method: 'POST',
                 headers: {
@@ -56,43 +57,60 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error('Failed to synthesize speech');
             }
+
+            // Get the filename from the response header
+            const filename = response.headers.get('X-Audio-Filename');
             
-            const audioData = await response.arrayBuffer();
-            return audioData;
+            // Create a blob from the audio data
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            return { audioUrl, filename };
         } catch (error) {
             console.error('Error in speech synthesis:', error);
             throw error;
+        } finally {
+            speakBtn.disabled = false;
+            speakBtn.innerHTML = '<i class="fas fa-play"></i> Speak';
         }
     }
     
-    async function playAudio(audioData, rate) {
+    async function playAudio(audioUrl, rate = 1) {
         try {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            
             // Stop any currently playing audio
-            if (currentAudioSource) {
-                currentAudioSource.stop();
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
             }
             
-            // Decode the audio data
-            currentAudioBuffer = await audioContext.decodeAudioData(audioData);
+            // Create new audio element
+            currentAudio = new Audio(audioUrl);
+            currentAudio.playbackRate = rate;
             
-            // Create and configure the audio source
-            currentAudioSource = audioContext.createBufferSource();
-            currentAudioSource.buffer = currentAudioBuffer;
-            currentAudioSource.playbackRate.value = rate;
+            // Add error handling
+            currentAudio.onerror = (e) => {
+                console.error('Audio playback error:', e);
+                alert('Error playing audio. Please try again.');
+            };
             
-            // Connect to the audio context's destination
-            currentAudioSource.connect(audioContext.destination);
+            // Enable mobile audio playback
+            currentAudio.setAttribute('playsinline', '');
+            currentAudio.setAttribute('webkit-playsinline', '');
             
             // Play the audio
-            currentAudioSource.start(0);
+            const playPromise = currentAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.error('Playback error:', error);
+                    if (error.name === 'NotAllowedError') {
+                        alert('Please enable autoplay in your browser settings or tap to play.');
+                    }
+                });
+            }
             
             // Handle completion
-            currentAudioSource.onended = () => {
-                currentAudioSource = null;
+            currentAudio.onended = () => {
+                currentAudio = null;
             };
         } catch (error) {
             console.error('Error playing audio:', error);
@@ -104,8 +122,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (text.trim() === '') return;
         
         try {
-            const audioData = await synthesizeSpeech(text, voice, emotion, rate);
-            await playAudio(audioData, rate);
+            const { audioUrl, filename } = await synthesizeSpeech(text, voice, emotion);
+            await playAudio(audioUrl, rate);
+            
+            // Add download button after successful generation
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Audio';
+            downloadBtn.onclick = () => {
+                window.location.href = `/download/${filename}`;
+            };
+            
+            // Remove any existing download button
+            const existingBtn = document.querySelector('.download-btn');
+            if (existingBtn) {
+                existingBtn.remove();
+            }
+            
+            // Add the new download button
+            document.querySelector('.action-buttons').appendChild(downloadBtn);
         } catch (error) {
             console.error('Error in speakText:', error);
             alert('Failed to synthesize speech. Please try again.');
@@ -114,6 +149,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function rewriteText(text, style) {
         try {
+            rewriteBtn.disabled = true;
+            rewriteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rewriting...';
+            
             const response = await fetch('/rewrite', {
                 method: 'POST',
                 headers: {
@@ -134,6 +172,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error rewriting text:', error);
             return text; // Return original text if rewrite fails
+        } finally {
+            rewriteBtn.disabled = false;
+            rewriteBtn.innerHTML = '<i class="fas fa-edit"></i> AI Rewrite';
         }
     }
     
@@ -183,9 +224,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Stop button functionality
     stopBtn.addEventListener('click', () => {
-        if (currentAudioSource) {
-            currentAudioSource.stop();
-            currentAudioSource = null;
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio = null;
         }
     });
     
@@ -193,5 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
     clearBtn.addEventListener('click', () => {
         textInput.value = '';
         characterCount.textContent = '0 characters';
+        
+        // Remove download button if it exists
+        const downloadBtn = document.querySelector('.download-btn');
+        if (downloadBtn) {
+            downloadBtn.remove();
+        }
     });
 }); 
