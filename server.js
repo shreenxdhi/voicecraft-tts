@@ -13,6 +13,23 @@ const AVAILABLE_VOICES = [
     'en-AU'     // Australian English
 ];
 
+// Store generated audio files temporarily with their metadata
+const audioFiles = new Map();
+
+// Cleanup old files every 5 minutes
+setInterval(() => {
+    const now = Date.now();
+    audioFiles.forEach((metadata, filename) => {
+        if (now - metadata.timestamp > 5 * 60 * 1000) { // 5 minutes
+            const filepath = path.join(outputDir, filename);
+            if (fs.existsSync(filepath)) {
+                fs.unlinkSync(filepath);
+            }
+            audioFiles.delete(filename);
+        }
+    });
+}, 5 * 60 * 1000);
+
 // Text transformation functions
 function transformProfessional(text) {
     return text
@@ -85,12 +102,15 @@ app.post('/synthesize', async (req, res) => {
     try {
         const { text, voice, emotion } = req.body;
         
-        if (!text || !voice) {
-            return res.status(400).json({ error: 'Text and voice are required' });
+        if (!text || !text.trim()) {
+            return res.status(400).json({ error: 'Text is required and cannot be empty' });
         }
 
-        if (!AVAILABLE_VOICES.includes(voice)) {
-            return res.status(400).json({ error: 'Invalid voice selected' });
+        if (!voice || !AVAILABLE_VOICES.includes(voice)) {
+            return res.status(400).json({ 
+                error: 'Invalid voice selected',
+                availableVoices: AVAILABLE_VOICES 
+            });
         }
 
         // Add emotion-specific text modifications
@@ -111,7 +131,7 @@ app.post('/synthesize', async (req, res) => {
         }
 
         // Generate unique filename
-        const filename = `speech_${Date.now()}.mp3`;
+        const filename = `speech_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
         const filepath = path.join(outputDir, filename);
 
         // Create gTTS instance
@@ -120,31 +140,95 @@ app.post('/synthesize', async (req, res) => {
         // Save to file
         await new Promise((resolve, reject) => {
             gtts.save(filepath, (err) => {
-                if (err) reject(err);
-                else resolve();
+                if (err) {
+                    console.error('Error saving audio:', err);
+                    reject(new Error('Failed to generate audio file'));
+                } else {
+                    resolve();
+                }
             });
+        });
+
+        // Store file metadata
+        audioFiles.set(filename, {
+            timestamp: Date.now(),
+            text: text.substring(0, 50) + (text.length > 50 ? '...' : ''), // Store preview of text
+            voice,
+            emotion
         });
 
         // Stream the file
         const stat = fs.statSync(filepath);
         res.writeHead(200, {
             'Content-Type': 'audio/mpeg',
-            'Content-Length': stat.size
+            'Content-Length': stat.size,
+            'X-Audio-Filename': filename // Send filename in header
         });
 
         const readStream = fs.createReadStream(filepath);
         readStream.pipe(res);
 
-        // Clean up file after streaming
-        readStream.on('end', () => {
-            fs.unlink(filepath, (err) => {
-                if (err) console.error('Error deleting file:', err);
-            });
+        readStream.on('error', (error) => {
+            console.error('Error streaming file:', error);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Error streaming audio file' });
+            }
         });
 
     } catch (error) {
         console.error('Error in TTS synthesis:', error);
         res.status(500).json({ error: 'Failed to synthesize speech: ' + error.message });
+    }
+});
+
+// Download audio file endpoint
+app.get('/download/:filename', (req, res) => {
+    try {
+        const { filename } = req.params;
+        const filepath = path.join(outputDir, filename);
+
+        // Security check: only allow downloading files we've generated
+        if (!audioFiles.has(filename)) {
+            return res.status(404).json({ error: 'Audio file not found or expired' });
+        }
+
+        // Check if file exists
+        if (!fs.existsSync(filepath)) {
+            audioFiles.delete(filename); // Clean up metadata if file doesn't exist
+            return res.status(404).json({ error: 'Audio file not found' });
+        }
+
+        const metadata = audioFiles.get(filename);
+        const downloadName = `${metadata.voice}_${metadata.emotion || 'neutral'}_${Date.now()}.mp3`;
+
+        res.download(filepath, downloadName, (err) => {
+            if (err) {
+                console.error('Error downloading file:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Error downloading file' });
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error in download:', error);
+        res.status(500).json({ error: 'Failed to download file: ' + error.message });
+    }
+});
+
+// Get audio file info
+app.get('/audio/:filename/info', (req, res) => {
+    try {
+        const { filename } = req.params;
+        const metadata = audioFiles.get(filename);
+        
+        if (!metadata) {
+            return res.status(404).json({ error: 'Audio file not found or expired' });
+        }
+
+        res.json(metadata);
+    } catch (error) {
+        console.error('Error getting audio info:', error);
+        res.status(500).json({ error: 'Failed to get audio info: ' + error.message });
     }
 });
 
