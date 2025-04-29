@@ -4,10 +4,9 @@ A modern Text-to-Speech application with multiple English accents and text trans
 
 ## Features
 
-- Multiple English accents (US, UK, Australian, Indian, South African)
+- Multiple English accents (US))
 - Emotion modifications (Happy, Sad, Angry, Excited)
 - Speed control
-- Text rewriting styles (Professional, Casual, Formal, Creative, Concise, Detailed)
 - No API key required
 - Works offline
 
