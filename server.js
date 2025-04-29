@@ -7,25 +7,27 @@ const axios = require('axios');
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Available voices
+// Available voices with proper gTTS language codes
 const AVAILABLE_VOICES = [
-    'en-US',    // Sarah (American Female)
-    'en-IN'     // Priya (Indian Female)
+    'en',     // Sarah (American Female)
+    'en-gb'   // Priya (Indian Female)
 ];
 
 // Voice configuration
 const VOICE_CONFIG = {
-    'en-US': {
+    'en': {
         name: 'Sarah',
         accent: 'American Female',
         pitch: 1.0,
-        speed: 1.0
+        speed: 1.0,
+        tld: 'com'  // Use .com TLD for American accent
     },
-    'en-IN': {
+    'en-gb': {
         name: 'Priya',
         accent: 'Indian Female',
         pitch: 1.0,
-        speed: 0.9
+        speed: 0.9,
+        tld: 'co.in'  // Use .co.in TLD for Indian accent
     }
 };
 
@@ -156,6 +158,7 @@ app.post('/synthesize', async (req, res) => {
         // Create gTTS instance with voice settings
         const gtts = new gTTS(modifiedText, voice);
         gtts.speed = voiceSettings.speed;
+        gtts.tld = voiceSettings.tld;  // Set TLD for accent variation
 
         // Save to file
         await new Promise((resolve, reject) => {
