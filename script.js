@@ -7,9 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopBtn = document.getElementById('stop-btn');
     const clearBtn = document.getElementById('clear-btn');
     const previewBtn = document.getElementById('preview-btn');
-    const rewriteBtn = document.getElementById('rewrite-btn');
     const characterCount = document.querySelector('.character-count');
-    const rewriteOptions = document.getElementById('rewrite-options');
     
     let currentAudio = null;
     
@@ -28,7 +26,17 @@ document.addEventListener('DOMContentLoaded', () => {
             data.voices.forEach(voice => {
                 const option = document.createElement('option');
                 option.value = voice;
-                option.textContent = voice === 'en-US' ? 'American English' : 'Australian English';
+                // Give friendly names to voices
+                switch(voice) {
+                    case 'en-US':
+                        option.textContent = 'James (American Male)';
+                        break;
+                    case 'en-AU':
+                        option.textContent = 'Michael (Australian Male)';
+                        break;
+                    default:
+                        option.textContent = voice;
+                }
                 voiceSelect.appendChild(option);
             });
         } catch (error) {
@@ -147,50 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    async function rewriteText(text, style) {
-        try {
-            rewriteBtn.disabled = true;
-            rewriteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rewriting...';
-            
-            const response = await fetch('/rewrite', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    text,
-                    style
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to rewrite text');
-            }
-            
-            const data = await response.json();
-            return data.rewrittenText;
-        } catch (error) {
-            console.error('Error rewriting text:', error);
-            return text; // Return original text if rewrite fails
-        } finally {
-            rewriteBtn.disabled = false;
-            rewriteBtn.innerHTML = '<i class="fas fa-edit"></i> AI Rewrite';
-        }
-    }
-    
     // Initialize voices when the page loads
     initializeVoices();
-    
-    // Rewrite button functionality
-    rewriteBtn.addEventListener('click', async () => {
-        const originalText = textInput.value;
-        if (originalText.trim() === '') return;
-        
-        const style = rewriteOptions.value;
-        const rewrittenText = await rewriteText(originalText, style);
-        textInput.value = rewrittenText;
-        characterCount.textContent = `${rewrittenText.length} characters`;
-    });
     
     // Speak button functionality
     speakBtn.addEventListener('click', async () => {
