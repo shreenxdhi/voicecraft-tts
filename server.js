@@ -9,9 +9,25 @@ const port = process.env.PORT || 3001;
 
 // Available voices
 const AVAILABLE_VOICES = [
-    'en-US',    // American Female
-    'en-IN'     // Indian Female
+    'en-US',    // Sarah (American Female)
+    'en-IN'     // Priya (Indian Female)
 ];
+
+// Voice configuration
+const VOICE_CONFIG = {
+    'en-US': {
+        name: 'Sarah',
+        accent: 'American Female',
+        pitch: 1.0,
+        speed: 1.0
+    },
+    'en-IN': {
+        name: 'Priya',
+        accent: 'Indian Female',
+        pitch: 1.0,
+        speed: 0.9
+    }
+};
 
 // Store generated audio files temporarily with their metadata
 const audioFiles = new Map();
@@ -109,12 +125,15 @@ app.post('/synthesize', async (req, res) => {
         if (!voice || !AVAILABLE_VOICES.includes(voice)) {
             return res.status(400).json({ 
                 error: 'Invalid voice selected',
-                availableVoices: AVAILABLE_VOICES 
+                availableVoices: AVAILABLE_VOICES,
+                voiceConfig: VOICE_CONFIG
             });
         }
 
         // Add emotion-specific text modifications
         let modifiedText = text;
+        const voiceSettings = VOICE_CONFIG[voice];
+        
         switch(emotion) {
             case 'happy':
                 modifiedText = text.replace(/\./g, '!');
@@ -131,11 +150,12 @@ app.post('/synthesize', async (req, res) => {
         }
 
         // Generate unique filename
-        const filename = `speech_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
+        const filename = `speech_${voiceSettings.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
         const filepath = path.join(outputDir, filename);
 
-        // Create gTTS instance
+        // Create gTTS instance with voice settings
         const gtts = new gTTS(modifiedText, voice);
+        gtts.speed = voiceSettings.speed;
 
         // Save to file
         await new Promise((resolve, reject) => {
