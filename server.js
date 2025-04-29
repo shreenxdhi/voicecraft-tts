@@ -9,8 +9,8 @@ const port = process.env.PORT || 3001;
 
 // Available voices
 const AVAILABLE_VOICES = [
-    'en-US',    // American English
-    'en-AU'     // Australian English
+    'en-US',    // American Female
+    'en-IN'     // Indian Female
 ];
 
 // Store generated audio files temporarily with their metadata
@@ -299,5 +299,5 @@ app.post('/api/rewrite', async (req, res) => {
 
 // Start the server
 app.listen(port, () => {
-    console.log(`Shree TTS is running on http://localhost:${port}`);
+    console.log(`Vocalith is running on http://localhost:${port}`);
 }); 

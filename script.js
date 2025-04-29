@@ -1,4 +1,26 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = themeToggle.querySelector('i');
+    
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    });
+    
+    function updateThemeIcon(theme) {
+        themeIcon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    }
+
     const textInput = document.getElementById('text-input');
     const voiceSelect = document.getElementById('voice-select');
     const emotionSelect = document.getElementById('emotion-select');
@@ -26,13 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
             data.voices.forEach(voice => {
                 const option = document.createElement('option');
                 option.value = voice;
-                // Give friendly names to voices
                 switch(voice) {
                     case 'en-US':
-                        option.textContent = 'James (American Male)';
+                        option.textContent = 'Sarah (American Female)';
                         break;
-                    case 'en-AU':
-                        option.textContent = 'Michael (Australian Male)';
+                    case 'en-IN':
+                        option.textContent = 'Priya (Indian Female)';
                         break;
                     default:
                         option.textContent = voice;

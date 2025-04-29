@@ -1,20 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shree TTS - Text to Speech</title>
+    <title>Vocalith - Modern Text to Speech</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <button class="theme-toggle" id="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </button>
     <div class="background-animation"></div>
     <div class="container">
         <header>
-            <h1><i class="fas fa-microphone-alt"></i> Shree TTS</h1>
-            <p class="subtitle">High-Quality Text-to-Speech with Natural Voices</p>
+            <div class="logo">
+                <i class="fas fa-waveform-lines logo-icon"></i>
+                <h1>Vocalith</h1>
+            </div>
+            <p class="subtitle">Experience Natural Text-to-Speech with AI</p>
             <div class="open-source-badge">
-                <a href="https://github.com/shreenxdhi/shree-tts" target="_blank" rel="noopener noreferrer">
+                <a href="https://github.com/shreenxdhi/voicecraft-tts" target="_blank" rel="noopener noreferrer">
                     <i class="fab fa-github"></i> Open Source
                 </a>
             </div>
@@ -22,7 +28,7 @@
         
         <div class="tts-container">
             <div class="input-section">
-                <textarea id="text-input" placeholder="Enter your text here to convert to speech..."></textarea>
+                <textarea id="text-input" placeholder="Transform your text into natural speech..."></textarea>
                 <div class="character-count">0 characters</div>
             </div>
             
@@ -71,7 +77,7 @@
         
         <div class="voice-preview">
             <h3>Preview Voice</h3>
-            <div class="preview-text">Welcome to Shree TTS! Experience natural text-to-speech with our American and Indian female voices.</div>
+            <div class="preview-text">Welcome to Vocalith! Experience natural text-to-speech with our American and Indian female voices.</div>
             <button id="preview-btn" class="preview-btn">
                 <i class="fas fa-headphones"></i> Preview
             </button>
@@ -81,10 +87,10 @@
             <div class="footer-content">
                 <p>Made with <i class="fas fa-heart"></i> by <a href="https://github.com/shreenxdhi" target="_blank" rel="noopener noreferrer">Shreenidhi</a></p>
                 <div class="footer-links">
-                    <a href="https://github.com/shreenxdhi/shree-tts" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/shreenxdhi/voicecraft-tts" target="_blank" rel="noopener noreferrer">
                         <i class="fab fa-github"></i> GitHub
                     </a>
-                    <a href="https://github.com/shreenxdhi/shree-tts/issues" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/shreenxdhi/voicecraft-tts/issues" target="_blank" rel="noopener noreferrer">
                         <i class="fas fa-bug"></i> Report Issue
                     </a>
                 </div>
