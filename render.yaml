@@ -5,10 +5,13 @@ services:
     buildCommand: apt-get update && apt-get install -y ffmpeg && npm install
     startCommand: node server.js
     envVars:
+      # Optional API keys for enhanced features
       - key: OPENAI_API_KEY
         sync: false
+        required: false
       - key: HUGGING_FACE_API_KEY
         sync: false
+        required: false
       - key: PORT
         value: 10000
       # Firebase Client Configuration
