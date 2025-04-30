@@ -1,18 +1,23 @@
 # VoiceCraft TTS
 
-A modern Text-to-Speech application with multiple English accents and advanced voice transformation features.
+A modern Text-to-Speech application with multiple English accents, advanced voice transformation features, and a premium UI inspired by ElevenLabs.
+
+![VoiceCraft TTS Screenshot](https://i.imgur.com/abc123.png)
 
 ## Features
 
-- Multiple English accents (US, UK, Australian)
-- Emotion modifications (Happy, Sad, Angry, Excited)
-- Speed and pitch control
-- Voice cloning capabilities
-- Batch processing support
-- No API key required
-- Works offline
-- Secure file handling with multer
-- Modern UI with responsive design
+- **Modern UI/UX** with tabbed navigation and card-based layout
+- **Multiple English accents** (US, UK, Australian, Indian)
+- **Emotion modifications** (Happy, Sad, Angry, Excited, Neutral)
+- **Advanced voice settings** with speed, pitch, and volume control
+- **Voice cloning capabilities**
+- **Voice conversion between accents**
+- **Batch processing support**
+- **Light/Dark mode** with seamless transitions
+- **No API key required**
+- **Works offline**
+- **Secure file handling** with multer
+- **Responsive design** for all screen sizes
 
 ## Live Demo
 
@@ -31,30 +36,55 @@ cd voicecraft-tts
 npm install
 ```
 
-3. Start the development server:
+3. Create a `.env` file in the root directory (optional for advanced features):
+```
+HUGGING_FACE_API_KEY=your_huggingface_key_here
+```
+
+4. Start the development server:
 ```bash
 npm run dev
 ```
 
-4. For production:
+5. For production:
 ```bash
 npm start
 ```
 
-5. Open [http://localhost:3001](http://localhost:3001) in your browser
+6. Open [http://localhost:3001](http://localhost:3001) in your browser
+
+## User Interface
+
+The application features a premium UI with three main sections:
+
+1. **Text to Speech** - The main interface for generating speech from text
+2. **Voice Library** - Browse available voices and clone your own voice
+3. **History** - Access your previously generated audio files
 
 ## Project Structure
 
 ```
 voicecraft-tts/
-├── public/          # Static files
-│   ├── css/        # Stylesheets
-│   ├── js/         # Client-side JavaScript
-│   └── uploads/    # Temporary file storage
-├── server.js       # Main application file
-├── package.json    # Project dependencies
-└── README.md       # Project documentation
+├── index.html        # Main HTML file
+├── styles.css        # Stylesheet
+├── script.js         # Client-side JavaScript
+├── server.js         # Express server and API endpoints
+├── output/           # Temporary storage for generated audio
+├── uploads/          # Temporary file storage for voice samples
+├── package.json      # Project dependencies
+└── README.md         # Project documentation
 ```
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/synthesize` | POST | Generate speech from text |
+| `/voices` | GET | Get available voices |
+| `/clone-voice` | POST | Upload and process voice sample for cloning |
+| `/convert-voice` | POST | Convert audio between different voices |
+| `/batch-synthesize` | POST | Process multiple text entries at once |
+| `/rewrite` | POST | Transform text into different styles |
 
 ## Security Features
 
@@ -82,10 +112,11 @@ The application will be automatically deployed and you'll get a URL like `https:
 
 - Node.js
 - Express.js
-- Google Text-to-Speech
+- Google Text-to-Speech (gTTS)
 - Web Audio API
 - Multer (File upload handling)
 - Modern CSS with Flexbox and Grid
+- Font Awesome icons
 - Responsive Design
 
 ## Contributing
