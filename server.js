@@ -4,13 +4,31 @@ const path = require('path');
 const gTTS = require('gtts');
 const fs = require('fs');
 const axios = require('axios');
+const multer = require('multer');
 const app = express();
 const port = process.env.PORT || 3001;
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
+const upload = multer({ storage: storage });
+
+// Create uploads directory if it doesn't exist
+if (!fs.existsSync('uploads')) {
+    fs.mkdirSync('uploads');
+}
 
 // Available voices with proper gTTS language codes
 const AVAILABLE_VOICES = [
     'en-us',     // Sarah (American Female)
-    'en-in'      // Priya (Indian Female)
+    'en-in',     // Priya (Indian Female)
+    'custom'     // Custom voice cloning
 ];
 
 // Voice configuration
@@ -21,7 +39,7 @@ const VOICE_CONFIG = {
         pitch: 1.0,
         speed: 1.0,
         lang: 'en',
-        tld: 'com'  // Use .com TLD for American accent
+        tld: 'com'
     },
     'en-in': {
         name: 'Priya',
@@ -29,7 +47,14 @@ const VOICE_CONFIG = {
         pitch: 1.0,
         speed: 0.9,
         lang: 'en',
-        tld: 'co.in'  // Use .co.in TLD for Indian accent
+        tld: 'co.in'
+    },
+    'custom': {
+        name: 'Custom Voice',
+        accent: 'Cloned Voice',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'en'
     }
 };
 
@@ -40,7 +65,7 @@ const audioFiles = new Map();
 setInterval(() => {
     const now = Date.now();
     audioFiles.forEach((metadata, filename) => {
-        if (now - metadata.timestamp > 5 * 60 * 1000) { // 5 minutes
+        if (now - metadata.timestamp > 5 * 60 * 1000) {
             const filepath = path.join(outputDir, filename);
             if (fs.existsSync(filepath)) {
                 fs.unlinkSync(filepath);
@@ -117,10 +142,61 @@ app.get('/voices', (req, res) => {
     res.json({ voices: AVAILABLE_VOICES });
 });
 
-// Text-to-Speech endpoint
+// Voice cloning endpoint
+app.post('/clone-voice', upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No audio file uploaded' });
+        }
+
+        // Here you would typically:
+        // 1. Process the audio file for voice cloning
+        // 2. Save the voice model
+        // 3. Return a success response
+
+        res.json({
+            success: true,
+            message: 'Voice cloning initiated',
+            fileId: req.file.filename
+        });
+    } catch (error) {
+        console.error('Error in voice cloning:', error);
+        res.status(500).json({ error: 'Failed to clone voice' });
+    }
+});
+
+// Voice conversion endpoint
+app.post('/convert-voice', upload.single('audio'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No audio file uploaded' });
+        }
+
+        const { targetVoice } = req.body;
+        if (!targetVoice || !AVAILABLE_VOICES.includes(targetVoice)) {
+            return res.status(400).json({ error: 'Invalid target voice' });
+        }
+
+        // Here you would typically:
+        // 1. Process the audio file for voice conversion
+        // 2. Convert to target voice
+        // 3. Return the converted audio
+
+        res.json({
+            success: true,
+            message: 'Voice conversion initiated',
+            fileId: req.file.filename
+        });
+    } catch (error) {
+        console.error('Error in voice conversion:', error);
+        res.status(500).json({ error: 'Failed to convert voice' });
+    }
+});
+
+// Enhanced TTS endpoint with more features
 app.post('/synthesize', async (req, res) => {
     try {
-        const { text, voice, emotion } = req.body;
+        const { text, voice, emotion, pitch, speed, volume } = req.body;
         
         if (!text || !text.trim()) {
             return res.status(400).json({ error: 'Text is required and cannot be empty' });
@@ -159,8 +235,8 @@ app.post('/synthesize', async (req, res) => {
 
         // Create gTTS instance with voice settings
         const gtts = new gTTS(modifiedText, voiceSettings.lang);
-        gtts.speed = voiceSettings.speed;
-        gtts.tld = voiceSettings.tld;  // Set TLD for accent variation
+        gtts.speed = speed || voiceSettings.speed;
+        gtts.tld = voiceSettings.tld;
 
         // Save to file
         await new Promise((resolve, reject) => {
@@ -177,9 +253,12 @@ app.post('/synthesize', async (req, res) => {
         // Store file metadata
         audioFiles.set(filename, {
             timestamp: Date.now(),
-            text: text.substring(0, 50) + (text.length > 50 ? '...' : ''), // Store preview of text
+            text: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
             voice,
-            emotion
+            emotion,
+            pitch,
+            speed,
+            volume
         });
 
         // Stream the file
@@ -187,7 +266,7 @@ app.post('/synthesize', async (req, res) => {
         res.writeHead(200, {
             'Content-Type': 'audio/mpeg',
             'Content-Length': stat.size,
-            'X-Audio-Filename': filename // Send filename in header
+            'X-Audio-Filename': filename
         });
 
         const readStream = fs.createReadStream(filepath);
@@ -203,6 +282,31 @@ app.post('/synthesize', async (req, res) => {
     } catch (error) {
         console.error('Error in TTS synthesis:', error);
         res.status(500).json({ error: 'Failed to synthesize speech: ' + error.message });
+    }
+});
+
+// Batch processing endpoint
+app.post('/batch-synthesize', async (req, res) => {
+    try {
+        const { texts, voice, emotion } = req.body;
+        
+        if (!Array.isArray(texts) || texts.length === 0) {
+            return res.status(400).json({ error: 'Texts array is required and cannot be empty' });
+        }
+
+        const results = await Promise.all(texts.map(async (text) => {
+            const response = await fetch(`http://localhost:${port}/synthesize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, voice, emotion })
+            });
+            return response.json();
+        }));
+
+        res.json({ results });
+    } catch (error) {
+        console.error('Error in batch synthesis:', error);
+        res.status(500).json({ error: 'Failed to process batch synthesis' });
     }
 });
 
