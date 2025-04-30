@@ -5,10 +5,18 @@ const gTTS = require('gtts');
 const fs = require('fs');
 const axios = require('axios');
 const multer = require('multer');
-const { requireAuth, requireOnboarding } = require('./auth-middleware');
 const { exec } = require('child_process');
 const app = express();
 const port = process.env.PORT || 3001;
+
+// Always run in development mode
+const DEV_MODE = true;
+
+// Import mock authentication instead of Firebase auth
+const { requireAuth, requireOnboarding } = require('./mock-auth');
+
+// No need for conditional auth anymore
+const applyAuth = requireAuth;
 
 // Add CORS headers middleware
 app.use((req, res, next) => {
@@ -300,11 +308,11 @@ app.get('/voices', (req, res) => {
 });
 
 // Apply authentication to API endpoints that require it
-app.post('/api/tts', requireAuth, requireOnboarding, (req, res) => {
+app.post('/api/tts', applyAuth, requireOnboarding, (req, res) => {
     // Existing TTS endpoint logic
 });
 
-app.post('/clone-voice', requireAuth, requireOnboarding, upload.single('audio'), async (req, res) => {
+app.post('/clone-voice', applyAuth, requireOnboarding, upload.single('audio'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No audio file uploaded' });
@@ -326,7 +334,7 @@ app.post('/clone-voice', requireAuth, requireOnboarding, upload.single('audio'),
     }
 });
 
-app.post('/convert-voice', requireAuth, requireOnboarding, upload.single('audio'), async (req, res) => {
+app.post('/convert-voice', applyAuth, requireOnboarding, upload.single('audio'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No audio file uploaded' });
@@ -354,7 +362,7 @@ app.post('/convert-voice', requireAuth, requireOnboarding, upload.single('audio'
 });
 
 // Enhanced TTS endpoint with more features
-app.post('/synthesize', async (req, res) => {
+app.post('/synthesize', applyAuth, async (req, res) => {
     try {
         const { text, voice, emotion, pitch = 1.0, speed = 1.0, volume = 1.0, language } = req.body;
         
@@ -395,13 +403,66 @@ app.post('/synthesize', async (req, res) => {
         const filename = `speech_${voiceSettings.name}_${timestamp}_${randomId}.mp3`;
         const filepath = path.join(outputDir, filename);
         
+        let usedEngine = voiceSettings.engine;
+        
+        // Try to check if Coqui TTS is installed for Coqui voices
+        if (voiceSettings.engine === 'coqui') {
+            try {
+                await new Promise((resolve, reject) => {
+                    // Use the full path to tts in the virtual environment
+                    const ttsCommand = process.env.VIRTUAL_ENV 
+                        ? `${process.env.VIRTUAL_ENV}/bin/tts --list_models` 
+                        : './coqui-env-py311/bin/tts --list_models';
+                        
+                    exec(ttsCommand, (error) => {
+                        if (error) {
+                            console.warn('Coqui TTS not installed, falling back to gTTS');
+                            reject(new Error('Coqui TTS not installed'));
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            } catch (error) {
+                // Fall back to gTTS if Coqui is not installed
+                console.log(`Coqui TTS not available, falling back to gTTS for voice: ${voice}`);
+                usedEngine = 'gtts';
+                
+                // Create a quick notification for the client
+                res.set('X-TTS-Fallback', 'Used gTTS instead of Coqui');
+            }
+        }
+        
         // Generate speech based on the engine
-        if (voiceSettings.engine === 'gtts') {
+        if (usedEngine === 'gtts' || voiceSettings.engine === 'gtts') {
             await generateWithGTTS(modifiedText, voiceSettings, filepath, volume, speed, pitch);
-        } else if (voiceSettings.engine === 'coqui') {
-            await generateWithCoqui(modifiedText, voiceSettings, filepath, volume, speed, pitch, language);
+        } else if (usedEngine === 'coqui') {
+            try {
+                await generateWithCoqui(modifiedText, voiceSettings, filepath, volume, speed, pitch, language);
+            } catch (coquiError) {
+                // If Coqui fails, try using gTTS instead
+                console.error('Error with Coqui TTS, falling back to gTTS:', coquiError.message);
+                
+                // Create fallback settings for gTTS
+                const fallbackSettings = {
+                    lang: voiceSettings.lang.split('-')[0],
+                    tld: 'com',
+                    engine: 'gtts'
+                };
+                
+                // Set fallback header
+                res.set('X-TTS-Fallback', 'Used gTTS due to Coqui failure');
+                
+                // Generate with gTTS
+                await generateWithGTTS(modifiedText, fallbackSettings, filepath, volume, speed, pitch);
+            }
         } else {
             throw new Error('Unsupported TTS engine');
+        }
+
+        // Check if file exists
+        if (!fs.existsSync(filepath)) {
+            throw new Error('Failed to generate audio file');
         }
 
         // Track the file for cleanup
@@ -424,7 +485,35 @@ app.post('/synthesize', async (req, res) => {
         
     } catch (error) {
         console.error('Error in speech synthesis:', error);
-        res.status(500).json({ error: 'Failed to synthesize speech', details: error.message });
+        
+        // Try to generate a fallback audio with basic gTTS
+        try {
+            const fallbackText = "I'm sorry, but I couldn't generate the speech you requested. Please try again or choose a different voice.";
+            const fallbackFilepath = path.join(outputDir, `error_fallback_${Date.now()}.mp3`);
+            
+            const gtts = new gTTS(fallbackText, 'en');
+            await new Promise((resolve, reject) => {
+                gtts.save(fallbackFilepath, (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            
+            // Set headers for audio delivery
+            res.setHeader('Content-Disposition', `inline; filename="error_message.mp3"`);
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('X-TTS-Error', error.message);
+            
+            // Send the fallback file
+            return res.sendFile(fallbackFilepath);
+        } catch (fallbackError) {
+            // If even the fallback fails, just return an error
+            res.status(500).json({ 
+                error: 'Failed to synthesize speech', 
+                details: error.message,
+                suggestion: 'Try using a gTTS voice instead of Coqui TTS'
+            });
+        }
     }
 });
 
@@ -475,66 +564,264 @@ async function generateWithGTTS(text, voiceSettings, filepath, volume, speed, pi
     });
 }
 
-// Function to generate speech with Coqui TTS
+// Check system requirements at startup
+let COQUI_INSTALLED = false;
+let FFMPEG_INSTALLED = false;
+
+// Check for Coqui TTS installation
+function checkCoquiInstallation() {
+    return new Promise((resolve) => {
+        // Use the full path to tts in the virtual environment
+        const ttsCommand = process.env.VIRTUAL_ENV 
+            ? `${process.env.VIRTUAL_ENV}/bin/tts --list_models` 
+            : './coqui-env-py311/bin/tts --list_models';
+            
+        exec(ttsCommand, (error, stdout) => {
+            if (error) {
+                console.log('⚠️ Coqui TTS is not installed. Coqui voices will fall back to gTTS.');
+                console.log('To install Coqui TTS, run: npm run install-coqui');
+                console.log('Error:', error.message);
+                COQUI_INSTALLED = false;
+            } else {
+                console.log('✅ Coqui TTS is installed.');
+                COQUI_INSTALLED = true;
+            }
+            resolve(COQUI_INSTALLED);
+        });
+    });
+}
+
+// Check for ffmpeg installation
+function checkFFmpegInstallation() {
+    return new Promise((resolve) => {
+        exec('ffmpeg -version', (error, stdout) => {
+            if (error) {
+                console.log('⚠️ ffmpeg is not installed. Audio processing features will be limited.');
+                console.log('To install ffmpeg:');
+                console.log('- macOS: brew install ffmpeg');
+                console.log('- Ubuntu/Debian: sudo apt-get install ffmpeg');
+                console.log('- Windows: Download from https://ffmpeg.org/download.html');
+                FFMPEG_INSTALLED = false;
+            } else {
+                const versionMatch = stdout.match(/version\s([^\s]+)/);
+                console.log('✅ ffmpeg is installed. Version:', versionMatch ? versionMatch[1] : 'unknown');
+                FFMPEG_INSTALLED = true;
+            }
+            resolve(FFMPEG_INSTALLED);
+        });
+    });
+}
+
+// Run checks at startup
+async function checkSystemRequirements() {
+    await checkCoquiInstallation();
+    await checkFFmpegInstallation();
+    
+    console.log('\n🚀 TTS System Status:');
+    console.log(`- Coqui TTS: ${COQUI_INSTALLED ? 'Installed ✅' : 'Not installed ⚠️'}`);
+    console.log(`- ffmpeg: ${FFMPEG_INSTALLED ? 'Installed ✅' : 'Not installed ⚠️'}`);
+    console.log(`- gTTS: Installed ✅`);
+    console.log(`- Total voices available: ${AVAILABLE_VOICES.length}\n`);
+}
+
+// Add API endpoint to check system status
+app.get('/api/system-status', (req, res) => {
+    res.json({
+        coqui_installed: COQUI_INSTALLED,
+        ffmpeg_installed: FFMPEG_INSTALLED,
+        available_voices: AVAILABLE_VOICES,
+        voice_details: VOICE_CONFIG
+    });
+});
+
+// Get voice info for client
+app.get('/api/voices', (req, res) => {
+    // Only return Coqui voices if Coqui is installed
+    const availableVoices = AVAILABLE_VOICES.filter(voice => {
+        const voiceConfig = VOICE_CONFIG[voice] || {};
+        return voiceConfig.engine !== 'coqui' || COQUI_INSTALLED;
+    });
+    
+    res.json({
+        voices: availableVoices,
+        details: VOICE_CONFIG,
+        coqui_installed: COQUI_INSTALLED,
+        ffmpeg_installed: FFMPEG_INSTALLED
+    });
+});
+
+// Modified generateWithCoqui function with better error handling for mobile
 async function generateWithCoqui(text, voiceSettings, filepath, volume, speed, pitch, language) {
+    // If Coqui is not installed, fallback to gTTS immediately
+    if (!COQUI_INSTALLED) {
+        console.log(`Coqui TTS not installed, falling back to gTTS for voice: ${voiceSettings.name}`);
+        
+        // Find a suitable gTTS fallback voice based on language
+        let fallbackLang = 'en';
+        let tld = 'com';
+        
+        if (voiceSettings.lang === 'de') { 
+            fallbackLang = 'de'; 
+        } else if (voiceSettings.lang === 'fr') { 
+            fallbackLang = 'fr'; 
+        } else if (voiceSettings.lang === 'es') { 
+            fallbackLang = 'es'; 
+        } else if (voiceSettings.lang === 'it') { 
+            fallbackLang = 'it'; 
+        } else if (voiceSettings.lang.startsWith('en')) {
+            // Match the right English accent if possible
+            if (voiceSettings.accent && voiceSettings.accent.includes('British')) {
+                fallbackLang = 'en';
+                tld = 'co.uk';
+            } else if (voiceSettings.accent && voiceSettings.accent.includes('Australian')) {
+                fallbackLang = 'en';
+                tld = 'com.au';
+            } else if (voiceSettings.accent && voiceSettings.accent.includes('Indian')) {
+                fallbackLang = 'en';
+                tld = 'co.in';
+            }
+        }
+        
+        const fallbackSettings = {
+            lang: fallbackLang,
+            tld: tld,
+            engine: 'gtts',
+            pitch: voiceSettings.pitch || 1.0,
+            speed: voiceSettings.speed || 1.0
+        };
+        
+        return await generateWithGTTS(text, fallbackSettings, filepath, volume, speed, pitch);
+    }
+    
     const tempFilepath = filepath.replace('.mp3', '_temp.wav');
     
-    // Create command for Coqui TTS
-    let coquiCmd = `tts --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model}`;
-    
-    // Add vocoder if specified
-    if (voiceSettings.vocoder) {
-        coquiCmd += ` --vocoder_name ${voiceSettings.vocoder}`;
-    }
-    
-    // Add speaker if specified
-    if (voiceSettings.speaker) {
-        coquiCmd += ` --speaker_idx ${voiceSettings.speaker}`;
-    }
-    
-    // Add language override if provided
-    if (language && voiceSettings.model.includes('multilingual')) {
-        coquiCmd += ` --language ${language}`;
-    }
-    
-    // Set output path
-    coquiCmd += ` --out_path ${tempFilepath}`;
-    
-    // Run Coqui TTS command
-    await new Promise((resolve, reject) => {
-        exec(coquiCmd, (error, stdout, stderr) => {
-            if (error) {
-                console.error('Error generating speech with Coqui TTS:', error);
-                console.error('stderr:', stderr);
-                console.error('stdout:', stdout);
-                reject(error);
-                return;
-            }
-            resolve();
-        });
-    });
-    
-    // Convert and apply audio effects with ffmpeg
-    await new Promise((resolve, reject) => {
-        // Calculate final values
-        const finalPitch = (voiceSettings.pitch * parseFloat(pitch)).toFixed(2);
-        const finalSpeed = (voiceSettings.speed * parseFloat(speed)).toFixed(2);
-        
-        // Command to convert wav to mp3 and apply effects
-        const ffmpegCmd = `ffmpeg -i ${tempFilepath} -af "asetrate=44100*${finalSpeed},aresample=44100,atempo=1/0.9,volume=${volume}" -vn -y ${filepath}`;
-        
-        exec(ffmpegCmd, (error) => {
-            // Delete the temp file
-            fs.unlink(tempFilepath, () => {});
+    try {
+        // Create command for Coqui TTS
+        // Use the full path to tts in the virtual environment
+        const ttsBin = process.env.VIRTUAL_ENV 
+            ? `${process.env.VIRTUAL_ENV}/bin/tts` 
+            : './coqui-env-py311/bin/tts';
             
-            if (error) {
-                console.error('Error processing audio with ffmpeg:', error);
-                reject(error);
-            } else {
+        let coquiCmd = `${ttsBin} --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model}`;
+        
+        // Add vocoder if specified
+        if (voiceSettings.vocoder) {
+            coquiCmd += ` --vocoder_name ${voiceSettings.vocoder}`;
+        }
+        
+        // Add speaker if specified
+        if (voiceSettings.speaker) {
+            coquiCmd += ` --speaker_idx ${voiceSettings.speaker}`;
+        }
+        
+        // Add language override if provided
+        if (language && voiceSettings.model.includes('multilingual')) {
+            coquiCmd += ` --language ${language}`;
+        }
+        
+        // Set output path
+        coquiCmd += ` --out_path ${tempFilepath}`;
+        
+        console.log("Running Coqui command:", coquiCmd);
+        
+        // Run Coqui TTS command with timeout
+        await new Promise((resolve, reject) => {
+            const process = exec(coquiCmd, { timeout: 60000 }, (error, stdout, stderr) => {
+                if (error) {
+                    console.error('Error generating speech with Coqui TTS:', error);
+                    if (stderr) console.error('stderr:', stderr);
+                    if (stdout) console.log('stdout:', stdout);
+                    
+                    reject(new Error(`Coqui TTS command failed: ${error.message}`));
+                    return;
+                }
+                
+                // Check if the file was created
+                if (!fs.existsSync(tempFilepath)) {
+                    reject(new Error('Coqui TTS did not generate an output file'));
+                    return;
+                }
+                
                 resolve();
-            }
+            });
         });
-    });
+        
+        // Process with ffmpeg if installed, otherwise just rename the file
+        if (FFMPEG_INSTALLED) {
+            // Convert and apply audio effects with ffmpeg
+            await new Promise((resolve, reject) => {
+                // Calculate final values
+                const finalPitch = (voiceSettings.pitch * parseFloat(pitch)).toFixed(2);
+                const finalSpeed = (voiceSettings.speed * parseFloat(speed)).toFixed(2);
+                
+                // Command to convert wav to mp3 and apply effects
+                const ffmpegCmd = `ffmpeg -i ${tempFilepath} -af "asetrate=44100*${finalSpeed},aresample=44100,atempo=1/0.9,volume=${volume}" -vn -y ${filepath}`;
+                
+                console.log("Running ffmpeg command:", ffmpegCmd);
+                
+                exec(ffmpegCmd, (error) => {
+                    // Delete the temp file
+                    fs.unlink(tempFilepath, () => {});
+                    
+                    if (error) {
+                        console.error('Error processing audio with ffmpeg:', error);
+                        reject(error);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        } else {
+            // Simple rename if ffmpeg is not available
+            fs.renameSync(tempFilepath, filepath);
+            console.log('ffmpeg not available, using unprocessed audio');
+        }
+        
+        return true;
+        
+    } catch (error) {
+        console.error("Detailed Coqui error:", error);
+        
+        // Fall back to gTTS if Coqui fails
+        console.log("Falling back to gTTS for voice:", voiceSettings.name);
+        
+        // Find a suitable gTTS fallback voice
+        let fallbackLang = 'en';
+        let tld = 'com';
+        
+        if (voiceSettings.lang === 'de') { 
+            fallbackLang = 'de'; 
+        } else if (voiceSettings.lang === 'fr') { 
+            fallbackLang = 'fr'; 
+        } else if (voiceSettings.lang === 'es') { 
+            fallbackLang = 'es'; 
+        } else if (voiceSettings.lang === 'it') { 
+            fallbackLang = 'it'; 
+        } else if (voiceSettings.lang.startsWith('en')) {
+            // Match the right English accent if possible
+            if (voiceSettings.accent && voiceSettings.accent.includes('British')) {
+                fallbackLang = 'en';
+                tld = 'co.uk';
+            } else if (voiceSettings.accent && voiceSettings.accent.includes('Australian')) {
+                fallbackLang = 'en';
+                tld = 'com.au';
+            } else if (voiceSettings.accent && voiceSettings.accent.includes('Indian')) {
+                fallbackLang = 'en';
+                tld = 'co.in';
+            }
+        }
+        
+        const fallbackSettings = {
+            lang: fallbackLang,
+            tld: tld,
+            engine: 'gtts',
+            pitch: voiceSettings.pitch || 1.0,
+            speed: voiceSettings.speed || 1.0
+        };
+        
+        // Generate with gTTS instead
+        return await generateWithGTTS(text, fallbackSettings, filepath, volume, speed, pitch);
+    }
 }
 
 // Get voice list with details
@@ -553,7 +840,12 @@ app.get('/api/voices', (req, res) => {
 
 // Check if Coqui TTS is installed
 app.get('/api/check-coqui', (req, res) => {
-    exec('tts --version', (error, stdout, stderr) => {
+    // Use the full path to tts in the virtual environment
+    const ttsCommand = process.env.VIRTUAL_ENV 
+        ? `${process.env.VIRTUAL_ENV}/bin/tts --list_models` 
+        : './coqui-env-py311/bin/tts --list_models';
+        
+    exec(ttsCommand, (error, stdout, stderr) => {
         if (error) {
             res.json({ 
                 installed: false,
@@ -562,7 +854,7 @@ app.get('/api/check-coqui', (req, res) => {
         } else {
             res.json({ 
                 installed: true,
-                version: stdout.trim()
+                version: "Coqui TTS installed"
             });
         }
     });
@@ -769,7 +1061,7 @@ app.post('/api/rewrite', async (req, res) => {
 });
 
 // Add a profile endpoint
-app.get('/api/profile', requireAuth, async (req, res) => {
+app.get('/api/profile', applyAuth, async (req, res) => {
     try {
         // Return the user profile data
         res.json({ 
@@ -781,7 +1073,35 @@ app.get('/api/profile', requireAuth, async (req, res) => {
     }
 });
 
+// Serve static files from the current directory
+app.use(express.static(__dirname));
+
+// Handle 404 - Keep this as the last route
+app.use(function(req, res) {
+    res.status(404);
+    
+    // Check if the request wants JSON
+    if (req.accepts('html')) {
+        res.sendFile(path.join(__dirname, '404.html'));
+    } else if (req.accepts('json')) {
+        res.json({ error: 'Not found' });
+    } else {
+        res.type('txt').send('Not found');
+    }
+});
+
 // Start the server
-app.listen(port, () => {
-    console.log(`Vocalith is running on http://localhost:${port}`);
+app.listen(port, async () => {
+    console.log(`\n🎙️ VoiceCraft TTS Server v1.0`);
+    console.log(`➡️ Server running on http://localhost:${port}`);
+    console.log(`🔐 Mode: ${DEV_MODE ? 'DEVELOPMENT (no auth required)' : 'PRODUCTION (auth required)'}`);
+    
+    // Create output directory if it doesn't exist
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir);
+        console.log(`📁 Created output directory: ${outputDir}`);
+    }
+    
+    // Check system requirements
+    await checkSystemRequirements();
 }); 

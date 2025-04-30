@@ -68,4 +68,18 @@ coverage/
 
 # Temporary files
 tmp/
-temp/ 
+temp/
+
+# Python virtualenv
+venv/
+env/
+.venv/
+coqui-env/
+coqui-env-py311/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Debug and test output
+voice-tests/
+debug-output/ 

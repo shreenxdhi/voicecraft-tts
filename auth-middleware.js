@@ -1,20 +1,49 @@
 // Authentication middleware for Express
 const admin = require('firebase-admin');
 
+// Check if in development mode
+const DEV_MODE = process.env.DEV_MODE === 'true' || process.argv.includes('--dev');
+
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    databaseURL: process.env.FIREBASE_DATABASE_URL
-  });
+  // Use fake config in development mode
+  if (DEV_MODE) {
+    console.log('Using DEVELOPMENT Firebase configuration');
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: 'fake-project-id',
+        clientEmail: 'fake@example.com',
+        privateKey: '-----BEGIN PRIVATE KEY-----\nfakeKey\n-----END PRIVATE KEY-----',
+      }),
+      databaseURL: 'https://fake-db.firebaseio.com'
+    });
+  } else {
+    // Use real config in production
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+      databaseURL: process.env.FIREBASE_DATABASE_URL
+    });
+  }
 }
 
 // Middleware to verify authentication
 const requireAuth = async (req, res, next) => {
+  // Skip auth in dev mode
+  if (DEV_MODE) {
+    req.user = {
+      uid: 'dev-user-id',
+      email: 'dev@example.com',
+      onboardingComplete: true,
+      displayName: 'Development User',
+      preferredVoice: 'en-us'
+    };
+    return next();
+  }
+
   try {
     // Check if Authorization header exists
     const authHeader = req.headers.authorization;
@@ -55,6 +84,11 @@ const requireAuth = async (req, res, next) => {
 
 // Middleware to check if user has completed onboarding
 const requireOnboarding = (req, res, next) => {
+  // Skip in dev mode
+  if (DEV_MODE) {
+    return next();
+  }
+
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

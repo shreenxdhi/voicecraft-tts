@@ -115,17 +115,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAudio = null;
     let currentAudioFilename = null;
 
-    // Load voice options from the server
-    async function loadVoices() {
+    // Load voice options and system status from the server
+    async function loadVoicesAndStatus() {
         try {
             const response = await fetch('/api/voices');
             const data = await response.json();
             
-            if (data && data.voices && data.details) {
-                updateVoiceSelect(data.voices, data.details);
+            if (data) {
+                // Update voice dropdown with available voices
+                if (data.voices && data.details) {
+                    updateVoiceSelect(data.voices, data.details);
+                }
                 
-                // Check if Coqui is installed
-                checkCoquiInstallation();
+                // Display installation status
+                if (data.hasOwnProperty('coqui_installed')) {
+                    updateSystemStatusDisplay(data.coqui_installed, data.ffmpeg_installed);
+                }
             }
         } catch (error) {
             console.error('Error loading voices:', error);
@@ -133,27 +138,90 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Check if Coqui TTS is installed on the server
-    async function checkCoquiInstallation() {
-        try {
-            const response = await fetch('/api/check-coqui');
-            const data = await response.json();
+    // Update the system status display
+    function updateSystemStatusDisplay(coquiInstalled, ffmpegInstalled) {
+        // Create or update status banner if not installed
+        if (!coquiInstalled || !ffmpegInstalled) {
+            let statusDiv = document.getElementById('system-status');
             
-            if (!data.installed) {
-                // Disable Coqui voices if not installed
-                const voiceSelect = document.getElementById('voice-select');
-                Array.from(voiceSelect.options).forEach(option => {
-                    if (option.value.startsWith('coqui-')) {
-                        option.disabled = true;
-                        option.text += ' (Coqui TTS not installed)';
-                    }
-                });
+            if (!statusDiv) {
+                statusDiv = document.createElement('div');
+                statusDiv.id = 'system-status';
+                statusDiv.className = 'system-status-banner';
                 
-                console.warn('Coqui TTS is not installed on the server');
+                // Add to the top of the page content
+                const container = document.querySelector('.container');
+                if (container) {
+                    container.insertBefore(statusDiv, container.firstChild);
+                } else {
+                    document.body.insertBefore(statusDiv, document.body.firstChild);
+                }
             }
-        } catch (error) {
-            console.error('Error checking Coqui installation:', error);
+            
+            // Build status message
+            let statusMessage = '<strong>System Status:</strong> ';
+            
+            if (!coquiInstalled) {
+                statusMessage += '<span class="status-warning">Coqui TTS not installed. Using gTTS for all voices.</span> ';
+            }
+            
+            if (!ffmpegInstalled) {
+                statusMessage += '<span class="status-warning">ffmpeg not installed. Some audio features limited.</span>';
+            }
+            
+            // Add installation instructions button
+            statusMessage += '<button id="installation-help" class="small-button">Installation Help</button>';
+            
+            statusDiv.innerHTML = statusMessage;
+            
+            // Add event listener to installation help button
+            document.getElementById('installation-help').addEventListener('click', showInstallationHelp);
         }
+    }
+
+    // Show installation help dialog
+    function showInstallationHelp() {
+        const dialog = document.createElement('div');
+        dialog.className = 'modal-dialog';
+        dialog.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Installation Instructions</h3>
+                    <button class="close-button">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <h4>Installing Coqui TTS</h4>
+                    <p>To use high-quality Coqui TTS voices, you need to install Coqui TTS:</p>
+                    <pre>npm run install-coqui</pre>
+                    <p>Or manually with pip:</p>
+                    <pre>pip install TTS</pre>
+                    
+                    <h4>Installing ffmpeg</h4>
+                    <p>For audio processing features, install ffmpeg:</p>
+                    <ul>
+                        <li><strong>macOS:</strong> <code>brew install ffmpeg</code></li>
+                        <li><strong>Ubuntu/Debian:</strong> <code>sudo apt-get install ffmpeg</code></li>
+                        <li><strong>Windows:</strong> Download from <a href="https://ffmpeg.org/download.html" target="_blank">ffmpeg.org</a></li>
+                    </ul>
+                    
+                    <p><strong>Note:</strong> After installation, restart the server for changes to take effect.</p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(dialog);
+        
+        // Handle close button
+        dialog.querySelector('.close-button').addEventListener('click', () => {
+            document.body.removeChild(dialog);
+        });
+        
+        // Close on click outside
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                document.body.removeChild(dialog);
+            }
+        });
     }
 
     // Update the voice dropdown with available options
@@ -942,94 +1010,189 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the page
     document.addEventListener('DOMContentLoaded', () => {
         // Load voices from the server
-        loadVoices();
+        loadVoicesAndStatus();
+        
+        // Initialize theme based on user preference
+        initTheme();
         
         // Optimize UI for current screen size
-        optimizeMobileUI();
+        optimizeMobileLayout();
         
-        // Add some additional CSS for mobile fixes
-        addMobileStyles();
+        // Apply listeners to all buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchstart', function(e) {
+                // Add active class on touch
+                this.classList.add('touch-active');
+            });
+            
+            button.addEventListener('touchend', function(e) {
+                // Remove active class when touch ends
+                this.classList.remove('touch-active');
+            });
+        });
+        
+        // Make sure audio controls are visible and large enough on mobile
+        const audioPlayer = document.getElementById('audio-player');
+        if (audioPlayer) {
+            audioPlayer.setAttribute('controlsList', 'nodownload');
+            audioPlayer.style.width = '100%';
+        }
+        
+        // Add theme toggle button if it doesn't exist
+        addThemeToggleButton();
     });
 
-    // Add additional styles for mobile optimization
-    function addMobileStyles() {
-        const styleEl = document.createElement('style');
-        styleEl.textContent = `
-            /* Mobile UI Fixes */
-            @media (max-width: 768px) {
-                .buttons-container {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                    justify-content: center;
-                    width: 100%;
-                }
-                
-                .buttons-container.mobile-layout {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-                
-                .btn {
-                    margin: 4px;
-                    white-space: nowrap;
-                    font-size: 14px;
-                }
-                
-                .custom-select {
-                    width: 100%;
-                }
-                
-                /* Play overlay for mobile */
-                .play-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(0, 0, 0, 0.7);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 1000;
-                }
-                
-                .play-overlay-btn {
-                    background: none;
-                    border: none;
-                    color: white;
-                    font-size: 72px;
-                    cursor: pointer;
-                    animation: pulse 1.5s infinite;
-                }
-                
-                @keyframes pulse {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.1); }
-                    100% { transform: scale(1); }
-                }
-                
-                /* Improved visibility for voice cards */
-                .voice-card {
-                    min-width: 140px;
-                }
-                
-                /* Better notification positioning */
-                .notification {
-                    bottom: 16px;
-                    right: 16px;
-                    max-width: calc(100% - 32px);
-                }
-            }
-            
-            /* Fix for audio playback on mobile */
-            audio {
-                width: 100%;
-                max-width: 300px;
-                margin: 10px auto;
-                display: block;
-            }
-        `;
+    // Toggle dark/light mode
+    function toggleTheme() {
+        const body = document.body;
+        const currentTheme = body.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
         
-        document.head.appendChild(styleEl);
+        // Update body attribute
+        body.setAttribute('data-theme', newTheme);
+        
+        // Store preference in localStorage
+        localStorage.setItem('theme', newTheme);
+        
+        // Update theme toggle button if it exists
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('i');
+            if (icon) {
+                icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
     }
+
+    // Expose toggleTheme to the global scope
+    window.toggleTheme = toggleTheme;
+
+    // Set theme based on saved preference or system preference
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const defaultTheme = prefersDark ? 'dark' : 'light';
+        const theme = savedTheme || defaultTheme;
+        
+        document.body.setAttribute('data-theme', theme);
+        
+        // Update theme toggle button if it exists
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('i');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+    }
+
+    // Add theme toggle button to header
+    function addThemeToggleButton() {
+        const header = document.querySelector('.app-header');
+        if (header && !document.getElementById('theme-toggle')) {
+            const themeToggle = document.createElement('button');
+            themeToggle.id = 'theme-toggle';
+            themeToggle.className = 'theme-toggle';
+            themeToggle.setAttribute('aria-label', 'Toggle theme');
+            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            themeToggle.onclick = toggleTheme;
+            
+            header.appendChild(themeToggle);
+            
+            // Update icon based on current theme
+            const currentTheme = document.body.getAttribute('data-theme') || 'light';
+            const icon = themeToggle.querySelector('i');
+            if (icon) {
+                icon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+    }
+
+    // Optimize the layout for mobile
+    function optimizeMobileLayout() {
+        const isMobile = window.innerWidth < 768;
+        
+        // Get the control elements
+        const controlsPanel = document.querySelector('.controls-panel');
+        const actionButtons = document.querySelector('.action-buttons');
+        const voiceSelector = document.querySelector('.voice-selector');
+        
+        if (isMobile) {
+            // Rearrange elements for mobile
+            if (controlsPanel) controlsPanel.classList.add('mobile-layout');
+            if (actionButtons) actionButtons.classList.add('mobile-grid');
+            if (voiceSelector) voiceSelector.classList.add('full-width');
+            
+            // Shrink padding and margins
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.add('mobile-card');
+            });
+            
+            // Adjust text area size
+            const textInput = document.getElementById('text-input');
+            if (textInput) textInput.rows = 4;
+        } else {
+            // Desktop layout
+            if (controlsPanel) controlsPanel.classList.remove('mobile-layout');
+            if (actionButtons) actionButtons.classList.remove('mobile-grid');
+            if (voiceSelector) voiceSelector.classList.remove('full-width');
+            
+            // Reset card layout
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('mobile-card');
+            });
+            
+            // Reset text area size
+            const textInput = document.getElementById('text-input');
+            if (textInput) textInput.rows = 6;
+        }
+    }
+
+    // Add window resize listeners
+    window.addEventListener('load', optimizeMobileLayout);
+    window.addEventListener('resize', optimizeMobileLayout);
+
+    // Add touchstart event listeners for better mobile responsiveness
+    document.addEventListener('DOMContentLoaded', () => {
+        // Apply listeners to all buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchstart', function(e) {
+                // Add active class on touch
+                this.classList.add('touch-active');
+            });
+            
+            button.addEventListener('touchend', function(e) {
+                // Remove active class when touch ends
+                this.classList.remove('touch-active');
+            });
+        });
+        
+        // Make sure audio controls are visible and large enough on mobile
+        const audioPlayer = document.getElementById('audio-player');
+        if (audioPlayer) {
+            audioPlayer.setAttribute('controlsList', 'nodownload');
+            audioPlayer.style.width = '100%';
+        }
+    });
+
+    // Make the handleSubmit function available globally
+    window.handleSubmit = handleSubmit;
+
+    // Toggle settings panel visibility
+    window.togglePanel = function(panelId) {
+        const panel = document.getElementById(panelId);
+        if (panel) {
+            panel.classList.toggle('collapsed');
+            
+            // Update chevron icon
+            const header = panel.previousElementSibling;
+            if (header) {
+                const icon = header.querySelector('.fa-chevron-down, .fa-chevron-up');
+                if (icon) {
+                    icon.classList.toggle('fa-chevron-down');
+                    icon.classList.toggle('fa-chevron-up');
+                }
+            }
+        }
+    };
 }); 
