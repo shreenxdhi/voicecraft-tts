@@ -8,6 +8,19 @@ const multer = require('multer');
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Add CORS headers middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -253,43 +266,37 @@ app.post('/synthesize', async (req, res) => {
 
         // Create gTTS instance with voice settings
         const gtts = new gTTS(modifiedText, voiceSettings.lang);
-        gtts.speed = speed || voiceSettings.speed;
-        gtts.tld = voiceSettings.tld;
-        gtts.pitch = pitch || voiceSettings.pitch;
-
-        // Save to file
+        
+        // Set TLD for gTTS
+        if (voiceSettings.tld) {
+            gtts.tld = voiceSettings.tld;
+        }
+        
+        // Save to file and send response
         await new Promise((resolve, reject) => {
             gtts.save(filepath, (err) => {
                 if (err) {
-                    console.error('Error saving audio:', err);
-                    reject(new Error('Failed to generate audio file'));
+                    console.error('Error saving audio file:', err);
+                    reject(err);
                 } else {
                     resolve();
                 }
             });
         });
 
-        // Store file metadata
+        // Track the file for cleanup
         audioFiles.set(filename, {
             timestamp: Date.now(),
-            voice: voiceSettings.name,
-            emotion: emotion,
-            pitch: pitch,
-            speed: speed,
-            volume: volume
+            voice: voice,
+            emotion: emotion
         });
 
-        // Send the audio file
-        res.sendFile(filepath, (err) => {
-            if (err) {
-                console.error('Error sending file:', err);
-                res.status(500).json({ error: 'Failed to send audio file' });
-            }
-        });
-
+        // Send the file
+        res.sendFile(filepath);
+        
     } catch (error) {
-        console.error('Error in synthesis:', error);
-        res.status(500).json({ error: 'Failed to generate speech' });
+        console.error('Error in speech synthesis:', error);
+        res.status(500).json({ error: 'Failed to synthesize speech', details: error.message });
     }
 });
 

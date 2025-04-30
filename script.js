@@ -84,6 +84,15 @@ document.addEventListener('DOMContentLoaded', () => {
             speakBtn.disabled = true;
             speakBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
 
+            console.log('Sending TTS request with:', {
+                text,
+                voice: voiceSelect.value,
+                emotion: emotionSelect.value,
+                speed: parseFloat(speedSlider.value),
+                pitch: parseFloat(pitchSlider.value),
+                volume: parseFloat(volumeSlider.value) / 100
+            });
+
             // Send to backend
             const response = await fetch('/synthesize', {
                 method: 'POST',
@@ -101,12 +110,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to generate speech');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Server response error:', response.status, errorData);
+                throw new Error(errorData.error || 'Failed to generate speech');
             }
 
             // Get the audio data
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
+
+            console.log('Received audio blob:', audioBlob.type, audioBlob.size);
 
             // Play the audio
             if (currentAudio) {
@@ -116,15 +129,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentAudio = new Audio(audioUrl);
             currentAudio.volume = parseFloat(volumeSlider.value) / 100; // Convert to 0-1 range
-            currentAudio.playbackRate = parseFloat(speedSlider.value);
-            currentAudio.play();
+            
+            // Add error handling for audio playback
+            currentAudio.onerror = (e) => {
+                console.error('Audio playback error:', e);
+                showNotification('Error playing the generated audio', 'error');
+            };
+            
+            // Ensure audio is ready before playing
+            currentAudio.oncanplaythrough = () => {
+                currentAudio.play()
+                    .then(() => {
+                        console.log('Audio playback started successfully');
+                    })
+                    .catch(error => {
+                        console.error('Audio play() failed:', error);
+                        showNotification('Failed to play audio', 'error');
+                    });
+            };
 
             // Show success message
             showNotification('Speech generated successfully!', 'success');
 
         } catch (error) {
             console.error('Error generating speech:', error);
-            showNotification('Failed to generate speech', 'error');
+            showNotification(`Failed to generate speech: ${error.message}`, 'error');
         } finally {
             // Reset button state
             speakBtn.disabled = false;
