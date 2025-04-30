@@ -6,6 +6,7 @@ const fs = require('fs');
 const axios = require('axios');
 const multer = require('multer');
 const { requireAuth, requireOnboarding } = require('./auth-middleware');
+const { exec } = require('child_process');
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -60,24 +61,24 @@ const VOICE_CONFIG = {
     'en-gb': {
         name: 'Emma',
         accent: 'British Female',
-        pitch: 1.0,
-        speed: 1.0,
+        pitch: 0.9,  // Lower pitch for British voice
+        speed: 0.95, // Slightly slower
         lang: 'en',
         tld: 'co.uk'
     },
     'en-au': {
         name: 'Nicole',
         accent: 'Australian Female',
-        pitch: 1.0,
-        speed: 1.0,
+        pitch: 1.1,  // Higher pitch for Australian
+        speed: 1.05, // Slightly faster
         lang: 'en',
         tld: 'com.au'
     },
     'en-in': {
         name: 'Priya',
         accent: 'Indian Female',
-        pitch: 1.0,
-        speed: 0.9,
+        pitch: 1.05, // Slightly higher pitch
+        speed: 0.9,  // Slower pace
         lang: 'en',
         tld: 'co.in'
     },
@@ -231,7 +232,7 @@ app.post('/convert-voice', requireAuth, requireOnboarding, upload.single('audio'
 // Enhanced TTS endpoint with more features
 app.post('/synthesize', async (req, res) => {
     try {
-        const { text, voice, emotion, pitch, speed, volume } = req.body;
+        const { text, voice, emotion, pitch = 1.0, speed = 1.0, volume = 1.0 } = req.body;
         
         if (!text || !text.trim()) {
             return res.status(400).json({ error: 'Text is required and cannot be empty' });
@@ -267,6 +268,7 @@ app.post('/synthesize', async (req, res) => {
         // Generate unique filename
         const filename = `speech_${voiceSettings.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
         const filepath = path.join(outputDir, filename);
+        const tempFilepath = path.join(outputDir, `temp_${filename}`);
 
         // Create gTTS instance with voice settings
         const gtts = new gTTS(modifiedText, voiceSettings.lang);
@@ -276,12 +278,34 @@ app.post('/synthesize', async (req, res) => {
             gtts.tld = voiceSettings.tld;
         }
         
-        // Save to file and send response
+        // Save to temp file
         await new Promise((resolve, reject) => {
-            gtts.save(filepath, (err) => {
+            gtts.save(tempFilepath, (err) => {
                 if (err) {
                     console.error('Error saving audio file:', err);
                     reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        // Calculate final pitch and speed values
+        const finalPitch = (voiceSettings.pitch * parseFloat(pitch)).toFixed(2);
+        const finalSpeed = (voiceSettings.speed * parseFloat(speed)).toFixed(2);
+        
+        // Apply voice modifications using ffmpeg
+        await new Promise((resolve, reject) => {
+            // Command to modify pitch and speed
+            const ffmpegCmd = `ffmpeg -i ${tempFilepath} -af "asetrate=44100*${finalSpeed},aresample=44100,atempo=1/0.9,volume=${volume}" -vn ${filepath}`;
+            
+            exec(ffmpegCmd, (error) => {
+                // Delete the temp file
+                fs.unlink(tempFilepath, () => {});
+                
+                if (error) {
+                    console.error('Error modifying audio:', error);
+                    reject(error);
                 } else {
                     resolve();
                 }
