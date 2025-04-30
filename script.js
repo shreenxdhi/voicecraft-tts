@@ -26,7 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const characterCount = document.querySelector('.character-count');
     
     textInput.addEventListener('input', () => {
-        characterCount.textContent = `${textInput.value.length} characters`;
+        const count = textInput.value.length;
+        const countDisplay = document.querySelector('.character-count span');
+        countDisplay.textContent = count;
+        
+        // Change color if approaching limit
+        if (count > 1800) {
+            countDisplay.classList.add('limit-warning');
+        } else {
+            countDisplay.classList.remove('limit-warning');
+        }
     });
 
     // Clear button functionality
@@ -48,23 +57,57 @@ document.addEventListener('DOMContentLoaded', () => {
     const pitchDisplay = pitchSlider.nextElementSibling;
     const volumeDisplay = volumeSlider.nextElementSibling;
 
-    // Update parameter displays with proper formatting
+    // Update parameter displays with proper formatting and gradient
     speedSlider.addEventListener('input', () => {
-        speedDisplay.textContent = `${parseFloat(speedSlider.value).toFixed(1)}x`;
+        const value = parseFloat(speedSlider.value);
+        const speedValue = document.querySelector('#speed-slider + .slider-value');
+        speedValue.textContent = `${value.toFixed(1)}x`;
+        
+        // Update gradient
+        const percent = ((value - 0.5) / 1.5) * 100;
+        speedSlider.style.background = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percent}%, var(--bg-tertiary) ${percent}%, var(--bg-tertiary) 100%)`;
     });
 
     pitchSlider.addEventListener('input', () => {
-        pitchDisplay.textContent = parseFloat(pitchSlider.value).toFixed(1);
+        const value = parseFloat(pitchSlider.value);
+        const pitchValue = document.querySelector('#pitch-slider + .slider-value');
+        pitchValue.textContent = value.toFixed(1);
+        
+        // Update gradient
+        const percent = ((value - 0.5) / 1) * 100;
+        pitchSlider.style.background = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percent}%, var(--bg-tertiary) ${percent}%, var(--bg-tertiary) 100%)`;
     });
 
     volumeSlider.addEventListener('input', () => {
-        volumeDisplay.textContent = `${parseFloat(volumeSlider.value).toFixed(0)}%`;
+        const value = parseFloat(volumeSlider.value);
+        const volumeValue = document.querySelector('#volume-slider + .slider-value');
+        volumeValue.textContent = `${value.toFixed(0)}%`;
+        
+        // Update gradient
+        const percent = value;
+        volumeSlider.style.background = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percent}%, var(--bg-tertiary) ${percent}%, var(--bg-tertiary) 100%)`;
     });
 
-    // Initialize parameter displays
-    speedDisplay.textContent = `${parseFloat(speedSlider.value).toFixed(1)}x`;
-    pitchDisplay.textContent = parseFloat(pitchSlider.value).toFixed(1);
-    volumeDisplay.textContent = `${parseFloat(volumeSlider.value).toFixed(0)}%`;
+    // Initialize slider gradients
+    const initSlider = (slider) => {
+        const value = parseFloat(slider.value);
+        let percent = 0;
+        
+        if (slider.id === 'speed-slider') {
+            percent = ((value - 0.5) / 1.5) * 100;
+        } else if (slider.id === 'pitch-slider') {
+            percent = ((value - 0.5) / 1) * 100;
+        } else if (slider.id === 'volume-slider') {
+            percent = value;
+        }
+        
+        slider.style.background = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percent}%, var(--bg-tertiary) ${percent}%, var(--bg-tertiary) 100%)`;
+    };
+    
+    // Initialize all sliders
+    initSlider(speedSlider);
+    initSlider(pitchSlider);
+    initSlider(volumeSlider);
 
     // Action buttons
     const speakBtn = document.getElementById('speak-btn');
@@ -348,16 +391,177 @@ document.addEventListener('DOMContentLoaded', () => {
         voiceSelect.value = voiceId;
     }
 
-    // Helper function to show notifications
+    // Tab navigation
+    const navLinks = document.querySelectorAll('.nav-link');
+    const contentAreas = document.querySelectorAll('.content-area');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            // Update active tab
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            
+            // Show corresponding content area
+            const targetContent = link.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+            contentAreas.forEach(area => {
+                area.classList.remove('active');
+                if (area.id === targetContent) {
+                    area.classList.add('active');
+                }
+            });
+        });
+    });
+    
+    // Advanced features panel toggle
+    const toggleAdvancedBtn = document.querySelector('.toggle-advanced');
+    const advancedFeaturesContent = document.querySelector('.advanced-features-panel .panel-content');
+    
+    if (toggleAdvancedBtn) {
+        toggleAdvancedBtn.addEventListener('click', () => {
+            advancedFeaturesContent.classList.toggle('collapsed');
+            toggleAdvancedBtn.querySelector('i').classList.toggle('fa-chevron-up');
+            toggleAdvancedBtn.querySelector('i').classList.toggle('fa-chevron-down');
+        });
+    }
+    
+    // Settings panel toggle
+    const toggleSettingsBtn = document.querySelector('.toggle-settings');
+    const settingsPanelContent = document.querySelector('.settings-panel .panel-content');
+    
+    if (toggleSettingsBtn) {
+        toggleSettingsBtn.addEventListener('click', () => {
+            settingsPanelContent.classList.toggle('collapsed');
+            toggleSettingsBtn.querySelector('i').classList.toggle('fa-cog');
+            toggleSettingsBtn.querySelector('i').classList.toggle('fa-times');
+        });
+    }
+
+    // Voice preview functionality
+    const voicePreviewBtns = document.querySelectorAll('.voice-preview-btn');
+    
+    voicePreviewBtns.forEach((btn, index) => {
+        btn.addEventListener('click', async () => {
+            const voiceName = btn.parentElement.querySelector('h3').textContent;
+            let voiceValue = '';
+            
+            // Map voice name to value
+            switch(voiceName) {
+                case 'Sarah': voiceValue = 'en-us'; break;
+                case 'Emma': voiceValue = 'en-gb'; break;
+                case 'Nicole': voiceValue = 'en-au'; break;
+                case 'Priya': voiceValue = 'en-in'; break;
+                default: voiceValue = 'en-us';
+            }
+            
+            try {
+                // Show loading state
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                btn.disabled = true;
+                
+                // Sample text for preview
+                const sampleText = "This is a sample of my voice. How do I sound?";
+                
+                // Send to backend
+                const response = await fetch('/synthesize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: sampleText,
+                        voice: voiceValue,
+                        emotion: 'neutral',
+                        speed: 1.0,
+                        pitch: 1.0,
+                        volume: 100
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to generate preview');
+                }
+                
+                // Get the audio data
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                // Play the audio
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio = null;
+                }
+                
+                currentAudio = new Audio(audioUrl);
+                currentAudio.volume = 1.0;
+                
+                currentAudio.oncanplaythrough = () => {
+                    currentAudio.play()
+                        .then(() => {
+                            console.log('Preview playback started successfully');
+                        })
+                        .catch(error => {
+                            console.error('Preview play() failed:', error);
+                            showNotification('Failed to play preview', 'error');
+                        });
+                };
+                
+                // Set voice in the main selector
+                voiceSelect.value = voiceValue;
+                
+                // Show success message
+                showNotification(`Playing ${voiceName} voice sample`, 'success');
+                
+                // Switch to Text to Speech tab after preview
+                navLinks[0].click();
+                
+            } catch (error) {
+                console.error('Error generating preview:', error);
+                showNotification('Failed to preview voice', 'error');
+            } finally {
+                // Reset button state
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+    });
+
+    // Enhanced notification system
     function showNotification(message, type = 'info') {
+        // Remove any existing notifications
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => {
+            notification.remove();
+        });
+        
+        // Create new notification
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.textContent = message;
+        
+        // Add icon based on type
+        let icon = 'info-circle';
+        if (type === 'success') icon = 'check-circle';
+        if (type === 'error') icon = 'exclamation-circle';
+        if (type === 'warning') icon = 'exclamation-triangle';
+        
+        notification.innerHTML = `
+            <i class="fas fa-${icon}"></i>
+            <span>${message}</span>
+        `;
         
         document.body.appendChild(notification);
         
+        // Show notification
         setTimeout(() => {
-            notification.remove();
+            notification.classList.add('show');
+        }, 10);
+        
+        // Hide and remove notification
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
         }, 3000);
     }
 }); 

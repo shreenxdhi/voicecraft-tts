@@ -3,63 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoiceCraft TTS</title>
+    <title>VoiceCraft | AI Text-to-Speech</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <button id="theme-toggle" class="theme-toggle">
-            <i class="fas fa-moon"></i>
-        </button>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-waveform-voice"></i>
+                <h1>VoiceCraft</h1>
+            </div>
+            <nav class="main-nav">
+                <button class="nav-link active">Text to Speech</button>
+                <button class="nav-link">Voice Library</button>
+                <button class="nav-link">History</button>
+            </nav>
+            <div class="header-actions">
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </header>
 
-        <div class="main-header">
-            <h1 class="logo-title">VoiceCraft TTS</h1>
-        </div>
-        <div class="main-content">
-            <div class="voice-card">
-                <div class="voice-controls">
-                    <div class="control-group">
-                        <label for="text-input">Enter Text:</label>
+        <main class="main-content">
+            <div class="content-area active" id="text-to-speech">
+                <div class="input-panel">
+                    <div class="text-editor">
                         <textarea id="text-input" placeholder="Type or paste your text here..."></textarea>
-                        <div class="character-count">0 characters</div>
-                        <button id="clear-btn" class="btn">
-                            <i class="fas fa-trash"></i> Clear
+                        <div class="character-count"><span>0</span>/2000 characters</div>
+                    </div>
+                    
+                    <div class="editor-actions">
+                        <button id="clear-btn" class="btn icon-btn" aria-label="Clear text">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
-                    <div class="parameter-controls">
-                        <div class="control-group">
-                            <label for="voice-select">Voice:</label>
+                </div>
+                
+                <div class="controls-panel">
+                    <div class="voice-selector control-group">
+                        <label for="voice-select">Voice</label>
+                        <div class="custom-select">
                             <select id="voice-select">
                                 <option value="en-us">Sarah (US)</option>
                                 <option value="en-gb">Emma (UK)</option>
                                 <option value="en-au">Nicole (AU)</option>
                                 <option value="en-in">Priya (IN)</option>
                             </select>
-                        </div>
-                        <div class="control-group">
-                            <label for="emotion-select">Emotion:</label>
-                            <select id="emotion-select">
-                                <option value="neutral">Neutral</option>
-                                <option value="happy">Happy</option>
-                                <option value="sad">Sad</option>
-                                <option value="angry">Angry</option>
-                                <option value="excited">Excited</option>
-                            </select>
-                        </div>
-                        <div class="slider-container">
-                            <label for="speed-slider">Speed: <span>1.0x</span></label>
-                            <input type="range" id="speed-slider" min="0.5" max="2" step="0.1" value="1">
-                        </div>
-                        <div class="slider-container">
-                            <label for="pitch-slider">Pitch: <span>1.0</span></label>
-                            <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1">
-                        </div>
-                        <div class="slider-container">
-                            <label for="volume-slider">Volume: <span>100%</span></label>
-                            <input type="range" id="volume-slider" min="0" max="100" step="1" value="100">
+                            <i class="fas fa-chevron-down"></i>
                         </div>
                     </div>
+                    
                     <div class="action-buttons">
                         <button id="speak-btn" class="btn primary-btn">
                             <i class="fas fa-play"></i> Generate
@@ -69,34 +64,163 @@
                         </button>
                     </div>
                 </div>
-            </div>
-            <div class="advanced-card">
-                <h3>Advanced Features</h3>
-                <div class="feature-section">
-                    <h4>Voice Cloning</h4>
-                    <button id="voiceCloningBtn" class="btn tertiary-btn">
-                        <i class="fas fa-microphone"></i> Upload Voice Sample
-                    </button>
+                
+                <div class="settings-panel">
+                    <div class="panel-header">
+                        <h3>Voice settings</h3>
+                        <button class="btn icon-btn toggle-settings" aria-label="Toggle settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="panel-content">
+                        <div class="control-group">
+                            <label for="emotion-select">Emotion</label>
+                            <div class="custom-select">
+                                <select id="emotion-select">
+                                    <option value="neutral">Neutral</option>
+                                    <option value="happy">Happy</option>
+                                    <option value="sad">Sad</option>
+                                    <option value="angry">Angry</option>
+                                    <option value="excited">Excited</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="speed-slider">Speed</label>
+                            <div class="slider-with-value">
+                                <input type="range" id="speed-slider" min="0.5" max="2" step="0.1" value="1">
+                                <span class="slider-value">1.0x</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="pitch-slider">Pitch</label>
+                            <div class="slider-with-value">
+                                <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1">
+                                <span class="slider-value">1.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label for="volume-slider">Volume</label>
+                            <div class="slider-with-value">
+                                <input type="range" id="volume-slider" min="0" max="100" step="1" value="100">
+                                <span class="slider-value">100%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            
+            <div class="content-area" id="voice-library">
+                <div class="section-header">
+                    <h2>Voice Library</h2>
+                    <p>Choose from premium AI voices or clone your own voice.</p>
+                </div>
+                
+                <div class="voice-grid">
+                    <div class="voice-card">
+                        <div class="voice-info">
+                            <h3>Sarah</h3>
+                            <p>US English</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card">
+                        <div class="voice-info">
+                            <h3>Emma</h3>
+                            <p>UK English</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card">
+                        <div class="voice-info">
+                            <h3>Nicole</h3>
+                            <p>Australian English</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card">
+                        <div class="voice-info">
+                            <h3>Priya</h3>
+                            <p>Indian English</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card add-voice">
+                        <div class="voice-info">
+                            <h3>Clone Your Voice</h3>
+                            <p>Upload a sample to create your voice</p>
+                        </div>
+                        <button id="voiceCloningBtn" class="btn voice-action-btn">
+                            <i class="fas fa-microphone"></i> Upload Sample
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-area" id="history">
+                <div class="section-header">
+                    <h2>Generation History</h2>
+                    <p>Access your previously generated audio files.</p>
+                </div>
+                
+                <div class="history-list">
+                    <div class="history-empty">
+                        <i class="fas fa-history"></i>
+                        <p>Your generation history will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <div class="advanced-features-panel">
+            <div class="panel-header">
+                <h3>Advanced Features</h3>
+                <button class="btn icon-btn toggle-advanced" aria-label="Toggle advanced features">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+            </div>
+            
+            <div class="panel-content">
                 <div class="feature-section">
                     <h4>Voice Conversion</h4>
                     <div class="voice-conversion">
-                        <button id="voiceConversionBtn" class="btn tertiary-btn">
+                        <button id="voiceConversionBtn" class="btn feature-btn">
                             <i class="fas fa-exchange-alt"></i> Convert Voice
                         </button>
-                        <select id="targetVoiceSelect" class="feature-select">
-                            <option value="">Select Target Voice</option>
-                            <option value="en-us">Sarah (US)</option>
-                            <option value="en-gb">Emma (UK)</option>
-                            <option value="en-au">Nicole (AU)</option>
-                            <option value="en-in">Priya (IN)</option>
-                        </select>
+                        <div class="custom-select">
+                            <select id="targetVoiceSelect" class="feature-select">
+                                <option value="">Select Target Voice</option>
+                                <option value="en-us">Sarah (US)</option>
+                                <option value="en-gb">Emma (UK)</option>
+                                <option value="en-au">Nicole (AU)</option>
+                                <option value="en-in">Priya (IN)</option>
+                            </select>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
                     </div>
                 </div>
+                
                 <div class="feature-section">
                     <h4>Batch Processing</h4>
                     <textarea id="batchTextarea" class="batch-textarea" placeholder="Enter multiple texts, one per line..."></textarea>
-                    <button id="batchProcessBtn" class="btn tertiary-btn">
+                    <button id="batchProcessBtn" class="btn feature-btn">
                         <i class="fas fa-cogs"></i> Process Batch
                     </button>
                 </div>
@@ -105,6 +229,7 @@
     </div>
 
     <div id="notification" class="notification"></div>
+    
     <script src="script.js"></script>
 </body>
 </html> 
