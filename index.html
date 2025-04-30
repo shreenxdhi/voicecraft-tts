@@ -1,98 +1,146 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vocalith - AI-Powered Text to Speech</title>
+    <title>Vocalith - AI Voice Generator</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-        <i class="fas fa-moon"></i>
-    </button>
-    <div class="background-animation"></div>
-    <div class="container">
-        <header>
+    <div class="app-container">
+        <header class="main-header">
             <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-wave-square"></i>
-                </div>
-                <h1>Vocalith</h1>
+                <i class="fas fa-wave-square"></i>
+                <span>Vocalith</span>
             </div>
-            <p class="subtitle">Transform Text into Natural Speech with AI</p>
-            <div class="open-source-badge">
-                <a href="https://github.com/shreenxdhi/voicecraft-tts" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-github"></i> Open Source
-                </a>
+            <nav class="main-nav">
+                <a href="#" class="active">Text to Speech</a>
+                <a href="#">Voice Lab</a>
+                <a href="#">Voice Library</a>
+            </nav>
+            <div class="header-actions">
+                <button class="theme-toggle" id="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="login-btn">Login</button>
             </div>
         </header>
-        
-        <div class="tts-container">
-            <div class="input-section">
-                <textarea id="text-input" placeholder="Type or paste your text here to convert it into natural speech..." aria-label="Text to convert to speech"></textarea>
-                <div class="character-count">0 characters</div>
-            </div>
-            
-            <div class="controls">
-                <div class="control-group">
-                    <label for="voice-select">Voice</label>
-                    <select id="voice-select" aria-label="Select voice">
-                        <option value="en-us">Sarah (American Female)</option>
-                        <option value="en-in">Priya (Indian Female)</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label for="emotion-select">Emotion</label>
-                    <select id="emotion-select" aria-label="Select emotion">
-                        <option value="neutral">Natural</option>
-                        <option value="happy">Happy</option>
-                        <option value="excited">Excited</option>
-                        <option value="sad">Gentle</option>
-                        <option value="angry">Strong</option>
-                    </select>
-                </div>
-                
-                <div class="control-group">
-                    <label for="rate-select">Speed</label>
-                    <select id="rate-select" aria-label="Select speech speed">
-                        <option value="0.8">Slow</option>
-                        <option value="1" selected>Normal</option>
-                        <option value="1.2">Fast</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="action-buttons">
-                <button id="speak-btn" class="primary-btn" aria-label="Convert text to speech">
-                    <i class="fas fa-play"></i> Speak
-                </button>
-                <button id="stop-btn" class="secondary-btn" aria-label="Stop speech">
-                    <i class="fas fa-stop"></i> Stop
-                </button>
-                <button id="clear-btn" class="tertiary-btn" aria-label="Clear text">
-                    <i class="fas fa-trash"></i> Clear
-                </button>
-            </div>
-        </div>
-        
-        <div class="voice-preview">
-            <h3>Preview Voices</h3>
-            <div class="preview-text">Welcome to Vocalith! Experience natural text-to-speech with Sarah and Priya.</div>
-            <button id="preview-btn" class="preview-btn" aria-label="Preview voice">
-                <i class="fas fa-headphones"></i> Preview
-            </button>
-        </div>
 
-        <footer>
+        <main class="main-content">
+            <div class="tts-container">
+                <div class="input-section">
+                    <div class="text-input-container">
+                        <textarea id="text-input" placeholder="Type or paste your text here..." rows="6"></textarea>
+                        <div class="input-actions">
+                            <span class="character-count">0 characters</span>
+                            <button class="clear-btn" id="clear-btn">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-section">
+                    <div class="voice-controls">
+                        <div class="control-group">
+                            <label>Voice</label>
+                            <select id="voice-select">
+                                <option value="en-us">Sarah (American Female)</option>
+                                <option value="en-in">Priya (Indian Female)</option>
+                                <option value="custom">Custom Voice</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Emotion</label>
+                            <select id="emotion-select">
+                                <option value="neutral">Natural</option>
+                                <option value="happy">Happy</option>
+                                <option value="excited">Excited</option>
+                                <option value="sad">Gentle</option>
+                                <option value="angry">Strong</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="parameter-controls">
+                        <div class="control-group">
+                            <label>Speed</label>
+                            <input type="range" id="speed-slider" min="0.5" max="2" step="0.1" value="1">
+                            <span class="value-display">1.0x</span>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Pitch</label>
+                            <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1">
+                            <span class="value-display">1.0</span>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Volume</label>
+                            <input type="range" id="volume-slider" min="0" max="2" step="0.1" value="1">
+                            <span class="value-display">1.0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="speak-btn" class="primary-btn">
+                        <i class="fas fa-play"></i> Generate
+                    </button>
+                    <button id="stop-btn" class="secondary-btn">
+                        <i class="fas fa-stop"></i> Stop
+                    </button>
+                </div>
+            </div>
+
+            <div class="advanced-features">
+                <h3>Advanced Features</h3>
+                
+                <div class="feature-section">
+                    <h4>Voice Cloning</h4>
+                    <div class="voice-cloning">
+                        <button id="voiceCloningBtn" class="feature-btn">
+                            <i class="fas fa-microphone"></i> Upload Voice Sample
+                        </button>
+                        <div id="voice-sample-info" class="sample-info"></div>
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h4>Voice Conversion</h4>
+                    <div class="voice-conversion">
+                        <button id="voiceConversionBtn" class="feature-btn">
+                            <i class="fas fa-exchange-alt"></i> Convert Voice
+                        </button>
+                        <select id="targetVoiceSelect" class="feature-select">
+                            <option value="en-us">Convert to Sarah</option>
+                            <option value="en-in">Convert to Priya</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h4>Batch Processing</h4>
+                    <div class="batch-processing">
+                        <textarea id="batchTextarea" placeholder="Enter multiple texts, one per line..."></textarea>
+                        <button id="batchProcessBtn" class="feature-btn">
+                            <i class="fas fa-tasks"></i> Process Batch
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="main-footer">
             <div class="footer-content">
-                <p>Made with <i class="fas fa-heart"></i> by <a href="https://github.com/shreenxdhi" target="_blank" rel="noopener noreferrer">Shreenidhi</a></p>
+                <p>Made with <i class="fas fa-heart"></i> by <a href="https://github.com/shreenxdhi" target="_blank">Shreenidhi</a></p>
                 <div class="footer-links">
-                    <a href="https://github.com/shreenxdhi/voicecraft-tts" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/shreenxdhi/voicecraft-tts" target="_blank">
                         <i class="fab fa-github"></i> GitHub
                     </a>
-                    <a href="https://github.com/shreenxdhi/voicecraft-tts/issues" target="_blank" rel="noopener noreferrer">
+                    <a href="https://github.com/shreenxdhi/voicecraft-tts/issues" target="_blank">
                         <i class="fas fa-bug"></i> Report Issue
                     </a>
                 </div>

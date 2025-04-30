@@ -4,13 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeIcon = themeToggle.querySelector('i');
     
     // Check for saved theme preference
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
     
     themeToggle.addEventListener('click', () => {
         const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
@@ -18,197 +18,115 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     function updateThemeIcon(theme) {
-        themeIcon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
     }
 
+    // Text input and character count
     const textInput = document.getElementById('text-input');
-    const voiceSelect = document.getElementById('voice-select');
-    const emotionSelect = document.getElementById('emotion-select');
-    const rateSelect = document.getElementById('rate-select');
-    const speakBtn = document.getElementById('speak-btn');
-    const stopBtn = document.getElementById('stop-btn');
-    const clearBtn = document.getElementById('clear-btn');
-    const previewBtn = document.getElementById('preview-btn');
     const characterCount = document.querySelector('.character-count');
     
-    let currentAudio = null;
-    
-    // Update character count
     textInput.addEventListener('input', () => {
         characterCount.textContent = `${textInput.value.length} characters`;
     });
-    
-    // Initialize voices
-    async function initializeVoices() {
-        try {
-            const response = await fetch('/voices');
-            const data = await response.json();
-            
-            voiceSelect.innerHTML = '';
-            data.voices.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice;
-                switch(voice) {
-                    case 'en-us':
-                        option.textContent = 'Sarah (American Female)';
-                        break;
-                    case 'en-in':
-                        option.textContent = 'Priya (Indian Female)';
-                        break;
-                    default:
-                        option.textContent = voice;
-                }
-                voiceSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error('Error loading voices:', error);
-            voiceSelect.innerHTML = '<option value="">Error loading voices</option>';
+
+    // Clear button functionality
+    const clearBtn = document.getElementById('clear-btn');
+    clearBtn.addEventListener('click', () => {
+        textInput.value = '';
+        characterCount.textContent = '0 characters';
+    });
+
+    // Voice and emotion controls
+    const voiceSelect = document.getElementById('voice-select');
+    const emotionSelect = document.getElementById('emotion-select');
+
+    // Parameter controls
+    const speedSlider = document.getElementById('speed-slider');
+    const pitchSlider = document.getElementById('pitch-slider');
+    const volumeSlider = document.getElementById('volume-slider');
+    const speedDisplay = speedSlider.nextElementSibling;
+    const pitchDisplay = pitchSlider.nextElementSibling;
+    const volumeDisplay = volumeSlider.nextElementSibling;
+
+    // Update parameter displays
+    speedSlider.addEventListener('input', () => {
+        speedDisplay.textContent = `${speedSlider.value}x`;
+    });
+
+    pitchSlider.addEventListener('input', () => {
+        pitchDisplay.textContent = pitchSlider.value;
+    });
+
+    volumeSlider.addEventListener('input', () => {
+        volumeDisplay.textContent = volumeSlider.value;
+    });
+
+    // Action buttons
+    const speakBtn = document.getElementById('speak-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    let currentAudio = null;
+
+    // Speak button functionality
+    speakBtn.addEventListener('click', async () => {
+        const text = textInput.value.trim();
+        if (!text) {
+            showNotification('Please enter some text', 'error');
+            return;
         }
-    }
-    
-    async function synthesizeSpeech(text, voice, emotion) {
+
         try {
+            // Show loading state
             speakBtn.disabled = true;
             speakBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-            
+
+            // Send to backend
             const response = await fetch('/synthesize', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     text,
-                    voice,
-                    emotion
+                    voice: voiceSelect.value,
+                    emotion: emotionSelect.value,
+                    speed: speedSlider.value,
+                    pitch: pitchSlider.value,
+                    volume: volumeSlider.value
                 })
             });
-            
+
             if (!response.ok) {
-                throw new Error('Failed to synthesize speech');
+                throw new Error('Failed to generate speech');
             }
 
-            // Get the filename from the response header
-            const filename = response.headers.get('X-Audio-Filename');
-            
-            // Create a blob from the audio data
+            // Get the audio data
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
-            
-            return { audioUrl, filename };
-        } catch (error) {
-            console.error('Error in speech synthesis:', error);
-            throw error;
-        } finally {
-            speakBtn.disabled = false;
-            speakBtn.innerHTML = '<i class="fas fa-play"></i> Speak';
-        }
-    }
-    
-    async function playAudio(audioUrl, rate = 1) {
-        try {
-            // Stop any currently playing audio
+
+            // Play the audio
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio.currentTime = 0;
-            }
-            
-            // Create new audio element
-            currentAudio = new Audio(audioUrl);
-            currentAudio.playbackRate = rate;
-            
-            // Add error handling
-            currentAudio.onerror = (e) => {
-                console.error('Audio playback error:', e);
-                alert('Error playing audio. Please try again.');
-            };
-            
-            // Enable mobile audio playback
-            currentAudio.setAttribute('playsinline', '');
-            currentAudio.setAttribute('webkit-playsinline', '');
-            
-            // Play the audio
-            const playPromise = currentAudio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.error('Playback error:', error);
-                    if (error.name === 'NotAllowedError') {
-                        alert('Please enable autoplay in your browser settings or tap to play.');
-                    }
-                });
-            }
-            
-            // Handle completion
-            currentAudio.onended = () => {
                 currentAudio = null;
-            };
-        } catch (error) {
-            console.error('Error playing audio:', error);
-            throw error;
-        }
-    }
-    
-    async function speakText(text, voice, emotion, rate) {
-        if (text.trim() === '') return;
-        
-        try {
-            const { audioUrl, filename } = await synthesizeSpeech(text, voice, emotion);
-            await playAudio(audioUrl, rate);
-            
-            // Add download button after successful generation
-            const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'download-btn';
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Audio';
-            downloadBtn.onclick = () => {
-                window.location.href = `/download/${filename}`;
-            };
-            
-            // Remove any existing download button
-            const existingBtn = document.querySelector('.download-btn');
-            if (existingBtn) {
-                existingBtn.remove();
             }
-            
-            // Add the new download button
-            document.querySelector('.action-buttons').appendChild(downloadBtn);
+
+            currentAudio = new Audio(audioUrl);
+            currentAudio.volume = volumeSlider.value;
+            currentAudio.playbackRate = speedSlider.value;
+            currentAudio.play();
+
+            // Show success message
+            showNotification('Speech generated successfully!', 'success');
+
         } catch (error) {
-            console.error('Error in speakText:', error);
-            alert('Failed to synthesize speech. Please try again.');
+            console.error('Error generating speech:', error);
+            showNotification('Failed to generate speech', 'error');
+        } finally {
+            // Reset button state
+            speakBtn.disabled = false;
+            speakBtn.innerHTML = '<i class="fas fa-play"></i> Generate';
         }
-    }
-    
-    // Initialize voices when the page loads
-    initializeVoices();
-    
-    // Speak button functionality
-    speakBtn.addEventListener('click', async () => {
-        const text = textInput.value;
-        const voice = voiceSelect.value;
-        const emotion = emotionSelect.value;
-        const rate = parseFloat(rateSelect.value);
-        
-        if (!voice) {
-            alert('Please select a voice');
-            return;
-        }
-        
-        await speakText(text, voice, emotion, rate);
     });
-    
-    // Preview button functionality
-    previewBtn.addEventListener('click', async () => {
-        const previewText = document.querySelector('.preview-text').textContent;
-        const voice = voiceSelect.value;
-        const emotion = emotionSelect.value;
-        const rate = parseFloat(rateSelect.value);
-        
-        if (!voice) {
-            alert('Please select a voice');
-            return;
-        }
-        
-        await speakText(previewText, voice, emotion, rate);
-    });
-    
+
     // Stop button functionality
     stopBtn.addEventListener('click', () => {
         if (currentAudio) {
@@ -217,16 +135,195 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAudio = null;
         }
     });
-    
-    // Clear button functionality
-    clearBtn.addEventListener('click', () => {
-        textInput.value = '';
-        characterCount.textContent = '0 characters';
+
+    // Advanced Features
+    const voiceCloningBtn = document.getElementById('voiceCloningBtn');
+    const voiceConversionBtn = document.getElementById('voiceConversionBtn');
+    const batchProcessBtn = document.getElementById('batchProcessBtn');
+    const batchTextarea = document.getElementById('batchTextarea');
+    const targetVoiceSelect = document.getElementById('targetVoiceSelect');
+
+    // Voice Cloning
+    voiceCloningBtn.addEventListener('click', async () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/*';
         
-        // Remove download button if it exists
-        const downloadBtn = document.querySelector('.download-btn');
-        if (downloadBtn) {
-            downloadBtn.remove();
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                // Show loading state
+                voiceCloningBtn.disabled = true;
+                voiceCloningBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
+                // Create FormData and append the file
+                const formData = new FormData();
+                formData.append('voice_sample', file);
+                
+                // Send to backend
+                const response = await fetch('/api/voice-cloning', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Voice cloning failed');
+                }
+                
+                const data = await response.json();
+                
+                // Update UI with success message
+                showNotification('Voice sample uploaded successfully!', 'success');
+                
+                // Update voice select options
+                updateVoiceSelect(data.voiceId);
+                
+            } catch (error) {
+                console.error('Voice cloning error:', error);
+                showNotification('Failed to process voice sample', 'error');
+            } finally {
+                // Reset button state
+                voiceCloningBtn.disabled = false;
+                voiceCloningBtn.innerHTML = '<i class="fas fa-microphone"></i> Upload Voice Sample';
+            }
+        };
+        
+        input.click();
+    });
+
+    // Voice Conversion
+    voiceConversionBtn.addEventListener('click', async () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/*';
+        
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const targetVoice = targetVoiceSelect.value;
+            if (!targetVoice) {
+                showNotification('Please select a target voice', 'error');
+                return;
+            }
+            
+            try {
+                // Show loading state
+                voiceConversionBtn.disabled = true;
+                voiceConversionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Converting...';
+                
+                // Create FormData and append the file and target voice
+                const formData = new FormData();
+                formData.append('source_audio', file);
+                formData.append('target_voice', targetVoice);
+                
+                // Send to backend
+                const response = await fetch('/api/voice-conversion', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Voice conversion failed');
+                }
+                
+                const data = await response.json();
+                
+                // Play the converted audio
+                const audio = new Audio(data.audioUrl);
+                audio.play();
+                
+                // Show success message
+                showNotification('Voice converted successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Voice conversion error:', error);
+                showNotification('Failed to convert voice', 'error');
+            } finally {
+                // Reset button state
+                voiceConversionBtn.disabled = false;
+                voiceConversionBtn.innerHTML = '<i class="fas fa-exchange-alt"></i> Convert Voice';
+            }
+        };
+        
+        input.click();
+    });
+
+    // Batch Processing
+    batchProcessBtn.addEventListener('click', async () => {
+        const texts = batchTextarea.value.trim().split('\n').filter(text => text.trim());
+        if (texts.length === 0) {
+            showNotification('Please enter some text to process', 'error');
+            return;
+        }
+        
+        try {
+            // Show loading state
+            batchProcessBtn.disabled = true;
+            batchProcessBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Send to backend
+            const response = await fetch('/api/batch-process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    texts,
+                    voice: voiceSelect.value,
+                    emotion: emotionSelect.value,
+                    speed: speedSlider.value,
+                    pitch: pitchSlider.value,
+                    volume: volumeSlider.value
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Batch processing failed');
+            }
+            
+            const data = await response.json();
+            
+            // Create a download link for the batch results
+            const downloadLink = document.createElement('a');
+            downloadLink.href = data.downloadUrl;
+            downloadLink.download = 'batch-results.zip';
+            downloadLink.click();
+            
+            // Show success message
+            showNotification(`Processed ${texts.length} texts successfully!`, 'success');
+            
+        } catch (error) {
+            console.error('Batch processing error:', error);
+            showNotification('Failed to process batch', 'error');
+        } finally {
+            // Reset button state
+            batchProcessBtn.disabled = false;
+            batchProcessBtn.innerHTML = '<i class="fas fa-tasks"></i> Process Batch';
         }
     });
+
+    // Helper function to update voice select options
+    function updateVoiceSelect(voiceId) {
+        const option = document.createElement('option');
+        option.value = voiceId;
+        option.textContent = 'Custom Voice';
+        voiceSelect.appendChild(option);
+        voiceSelect.value = voiceId;
+    }
+
+    // Helper function to show notifications
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
 }); 
