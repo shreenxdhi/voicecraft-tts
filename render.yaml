@@ -2,7 +2,7 @@ services:
   - type: web
     name: shree-tts
     env: node
-    buildCommand: npm install
+    buildCommand: apt-get update && apt-get install -y ffmpeg && npm install
     startCommand: node server.js
     envVars:
       - key: OPENAI_API_KEY
