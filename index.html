@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="VoiceCraft - Advanced Text-to-Speech application with multiple languages and natural voices">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>VoiceCraft | AI Text-to-Speech</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -47,22 +51,67 @@
                         <label for="voice-select">Voice</label>
                         <div class="custom-select">
                             <select id="voice-select">
-                                <option value="en-us">Sarah (US)</option>
-                                <option value="en-gb">Emma (UK)</option>
-                                <option value="en-au">Nicole (AU)</option>
-                                <option value="en-in">Priya (IN)</option>
+                                <optgroup label="English (gTTS)">
+                                    <option value="en-us">Sarah (US)</option>
+                                    <option value="en-gb">Emma (UK)</option>
+                                    <option value="en-au">Nicole (AU)</option>
+                                    <option value="en-in">Priya (IN)</option>
+                                </optgroup>
+                                <optgroup label="English (Coqui)">
+                                    <option value="coqui-en-ljspeech">Scarlett (US - High Quality)</option>
+                                    <option value="coqui-en-vctk-male">James (UK - Male)</option>
+                                    <option value="coqui-en-vctk-female">Charlotte (UK - Female)</option>
+                                    <option value="coqui-en-jenny">Jenny (US - Natural)</option>
+                                    <option value="coqui-en-blizzard">David (US - Male)</option>
+                                </optgroup>
+                                <optgroup label="Other Languages">
+                                    <option value="coqui-de-thorsten">Thorsten (German)</option>
+                                    <option value="coqui-fr-mai">Céline (French)</option>
+                                    <option value="coqui-es-css10">Miguel (Spanish)</option>
+                                    <option value="coqui-it-mai">Sophia (Italian)</option>
+                                </optgroup>
+                                <optgroup label="Multilingual">
+                                    <option value="coqui-multilingual">Global (16+ languages)</option>
+                                </optgroup>
+                            </select>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    
+                    <div id="language-select-container" class="control-group" style="display: none;">
+                        <label for="language-select">Language</label>
+                        <div class="custom-select">
+                            <select id="language-select">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="pl">Polish</option>
+                                <option value="tr">Turkish</option>
+                                <option value="ru">Russian</option>
+                                <option value="nl">Dutch</option>
+                                <option value="cs">Czech</option>
+                                <option value="ar">Arabic</option>
+                                <option value="zh-cn">Chinese</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="hi">Hindi</option>
                             </select>
                             <i class="fas fa-chevron-down"></i>
                         </div>
                     </div>
                     
                     <div class="action-buttons">
-                        <button id="speak-btn" class="btn primary-btn">
-                            <i class="fas fa-play"></i> Generate
-                        </button>
-                        <button id="stop-btn" class="btn secondary-btn">
-                            <i class="fas fa-stop"></i> Stop
-                        </button>
+                        <div class="buttons-container">
+                            <button id="speak-btn" class="btn primary-btn">
+                                <i class="fas fa-play"></i> Generate
+                            </button>
+                            <button id="stop-btn" class="btn secondary-btn">
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -135,8 +184,28 @@
                     
                     <div class="voice-card">
                         <div class="voice-info">
+                            <h3>Scarlett</h3>
+                            <p>US English (High Quality)</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card">
+                        <div class="voice-info">
                             <h3>Emma</h3>
                             <p>UK English</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card">
+                        <div class="voice-info">
+                            <h3>James</h3>
+                            <p>UK English (Male)</p>
                         </div>
                         <button class="btn voice-preview-btn">
                             <i class="fas fa-play"></i> Preview
@@ -155,8 +224,28 @@
                     
                     <div class="voice-card">
                         <div class="voice-info">
+                            <h3>David</h3>
+                            <p>US English (Male)</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card">
+                        <div class="voice-info">
                             <h3>Priya</h3>
                             <p>Indian English</p>
+                        </div>
+                        <button class="btn voice-preview-btn">
+                            <i class="fas fa-play"></i> Preview
+                        </button>
+                    </div>
+                    
+                    <div class="voice-card">
+                        <div class="voice-info">
+                            <h3>Global</h3>
+                            <p>Multi-Lingual (16+ languages)</p>
                         </div>
                         <button class="btn voice-preview-btn">
                             <i class="fas fa-play"></i> Preview
@@ -208,10 +297,19 @@
                         <div class="custom-select">
                             <select id="targetVoiceSelect" class="feature-select">
                                 <option value="">Select Target Voice</option>
-                                <option value="en-us">Sarah (US)</option>
-                                <option value="en-gb">Emma (UK)</option>
-                                <option value="en-au">Nicole (AU)</option>
-                                <option value="en-in">Priya (IN)</option>
+                                <optgroup label="English">
+                                    <option value="en-us">Sarah (US)</option>
+                                    <option value="en-gb">Emma (UK)</option>
+                                    <option value="en-au">Nicole (AU)</option>
+                                    <option value="en-in">Priya (IN)</option>
+                                    <option value="coqui-en-ljspeech">Scarlett (US - HQ)</option>
+                                    <option value="coqui-en-vctk-male">James (UK - Male)</option>
+                                </optgroup>
+                                <optgroup label="Other Languages">
+                                    <option value="coqui-de-thorsten">Thorsten (German)</option>
+                                    <option value="coqui-fr-mai">Céline (French)</option>
+                                    <option value="coqui-es-css10">Miguel (Spanish)</option>
+                                </optgroup>
                             </select>
                             <i class="fas fa-chevron-down"></i>
                         </div>
@@ -230,6 +328,10 @@
     </div>
 
     <div id="notification" class="notification"></div>
+    
+    <div id="audio-player-container" class="audio-player-container" style="display: none;">
+        <audio id="audio-player" controls></audio>
+    </div>
     
     <script src="script.js"></script>
 </body>

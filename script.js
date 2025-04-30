@@ -115,6 +115,189 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAudio = null;
     let currentAudioFilename = null;
 
+    // Load voice options from the server
+    async function loadVoices() {
+        try {
+            const response = await fetch('/api/voices');
+            const data = await response.json();
+            
+            if (data && data.voices && data.details) {
+                updateVoiceSelect(data.voices, data.details);
+                
+                // Check if Coqui is installed
+                checkCoquiInstallation();
+            }
+        } catch (error) {
+            console.error('Error loading voices:', error);
+            showNotification('Error loading voice options', 'error');
+        }
+    }
+
+    // Check if Coqui TTS is installed on the server
+    async function checkCoquiInstallation() {
+        try {
+            const response = await fetch('/api/check-coqui');
+            const data = await response.json();
+            
+            if (!data.installed) {
+                // Disable Coqui voices if not installed
+                const voiceSelect = document.getElementById('voice-select');
+                Array.from(voiceSelect.options).forEach(option => {
+                    if (option.value.startsWith('coqui-')) {
+                        option.disabled = true;
+                        option.text += ' (Coqui TTS not installed)';
+                    }
+                });
+                
+                console.warn('Coqui TTS is not installed on the server');
+            }
+        } catch (error) {
+            console.error('Error checking Coqui installation:', error);
+        }
+    }
+
+    // Update the voice dropdown with available options
+    function updateVoiceSelect(voices, details) {
+        const voiceSelect = document.getElementById('voice-select');
+        
+        // Clear existing options
+        voiceSelect.innerHTML = '';
+        
+        // Group options by language/type
+        const groups = {
+            'English (gTTS)': [],
+            'English (Coqui)': [],
+            'Other Languages': [],
+            'Multilingual': []
+        };
+        
+        // Sort voices into groups
+        voices.forEach(voice => {
+            const voiceDetail = details[voice];
+            if (!voiceDetail) return;
+            
+            const option = document.createElement('option');
+            option.value = voice;
+            option.textContent = `${voiceDetail.name} (${voiceDetail.accent})`;
+            
+            // Determine which group this voice belongs to
+            if (voice.startsWith('coqui-en-')) {
+                groups['English (Coqui)'].push(option);
+            } else if (voice.startsWith('coqui-multilingual')) {
+                groups['Multilingual'].push(option);
+            } else if (voice.startsWith('coqui-')) {
+                groups['Other Languages'].push(option);
+            } else if (voice !== 'custom') {
+                groups['English (gTTS)'].push(option);
+            }
+        });
+        
+        // Add the groups to the select
+        for (const [groupName, options] of Object.entries(groups)) {
+            if (options.length === 0) continue;
+            
+            const group = document.createElement('optgroup');
+            group.label = groupName;
+            
+            options.forEach(option => group.appendChild(option));
+            voiceSelect.appendChild(group);
+        }
+        
+        // Custom voice option
+        const customOption = document.createElement('option');
+        customOption.value = 'custom';
+        customOption.textContent = 'Custom Voice (Voice Cloning)';
+        voiceSelect.appendChild(customOption);
+        
+        // Update any voice-specific UI elements
+        voiceSelect.addEventListener('change', handleVoiceChange);
+        
+        // Trigger change to update UI for initial selection
+        handleVoiceChange();
+    }
+
+    // Handle voice change to update relevant UI elements
+    function handleVoiceChange() {
+        const voiceSelect = document.getElementById('voice-select');
+        const selectedVoice = voiceSelect.value;
+        
+        // Show or hide language select for multilingual models
+        const languageSelectContainer = document.getElementById('language-select-container') || createLanguageSelectElement();
+        
+        if (selectedVoice === 'coqui-multilingual') {
+            languageSelectContainer.style.display = 'block';
+        } else {
+            languageSelectContainer.style.display = 'none';
+        }
+    }
+
+    // Create language select element if it doesn't exist
+    function createLanguageSelectElement() {
+        const controlsPanel = document.querySelector('.controls-panel');
+        const voiceSelector = document.querySelector('.voice-selector');
+        
+        // Create container
+        const languageSelectContainer = document.createElement('div');
+        languageSelectContainer.id = 'language-select-container';
+        languageSelectContainer.className = 'control-group';
+        languageSelectContainer.style.display = 'none';
+        
+        // Create label
+        const label = document.createElement('label');
+        label.htmlFor = 'language-select';
+        label.textContent = 'Language';
+        
+        // Create custom select wrapper
+        const customSelect = document.createElement('div');
+        customSelect.className = 'custom-select';
+        
+        // Create select element
+        const languageSelect = document.createElement('select');
+        languageSelect.id = 'language-select';
+        
+        // Add language options
+        const languages = [
+            { code: 'en', name: 'English' },
+            { code: 'es', name: 'Spanish' },
+            { code: 'fr', name: 'French' },
+            { code: 'de', name: 'German' },
+            { code: 'it', name: 'Italian' },
+            { code: 'pt', name: 'Portuguese' },
+            { code: 'pl', name: 'Polish' },
+            { code: 'tr', name: 'Turkish' },
+            { code: 'ru', name: 'Russian' },
+            { code: 'nl', name: 'Dutch' },
+            { code: 'cs', name: 'Czech' },
+            { code: 'ar', name: 'Arabic' },
+            { code: 'zh-cn', name: 'Chinese' },
+            { code: 'ja', name: 'Japanese' },
+            { code: 'ko', name: 'Korean' },
+            { code: 'hi', name: 'Hindi' }
+        ];
+        
+        languages.forEach(lang => {
+            const option = document.createElement('option');
+            option.value = lang.code;
+            option.textContent = lang.name;
+            languageSelect.appendChild(option);
+        });
+        
+        // Add icon
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-chevron-down';
+        
+        // Assemble the elements
+        customSelect.appendChild(languageSelect);
+        customSelect.appendChild(icon);
+        languageSelectContainer.appendChild(label);
+        languageSelectContainer.appendChild(customSelect);
+        
+        // Insert after voice selector
+        voiceSelector.parentNode.insertBefore(languageSelectContainer, voiceSelector.nextSibling);
+        
+        return languageSelectContainer;
+    }
+
     // Enhanced TTS request handling
     speakBtn.addEventListener('click', async () => {
         const text = textInput.value.trim();
@@ -137,14 +320,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const speedValue = speedSlider ? parseFloat(speedSlider.value) : 1.0;
             const pitchValue = pitchSlider ? parseFloat(pitchSlider.value) : 1.0;
             const volumeValue = volumeSlider ? parseFloat(volumeSlider.value) : 100;
+            const selectedVoice = voiceSelect.value;
+            
+            // Get language for multilingual models
+            let language = null;
+            if (selectedVoice === 'coqui-multilingual') {
+                const languageSelect = document.getElementById('language-select');
+                if (languageSelect) {
+                    language = languageSelect.value;
+                }
+            }
             
             console.log('Sending TTS request with:', {
                 text,
-                voice: voiceSelect.value,
+                voice: selectedVoice,
                 emotion,
                 speed: speedValue,
                 pitch: pitchValue,
-                volume: volumeValue
+                volume: volumeValue,
+                language
             });
 
             const response = await fetch('/synthesize', {
@@ -154,11 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     text,
-                    voice: voiceSelect.value,
+                    voice: selectedVoice,
                     emotion,
                     speed: speedValue,
                     pitch: pitchValue,
-                    volume: volumeValue / 100 // Convert to 0-1 range
+                    volume: volumeValue / 100, // Convert to 0-1 range
+                    language
                 }),
             });
 
@@ -198,23 +393,64 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             currentAudio = new Audio(audioUrl);
-            currentAudio.volume = parseFloat(volumeSlider.value) / 100; // Convert to 0-1 range
             
-            // Add error handling for audio playback
-            currentAudio.onerror = (e) => {
+            // Add error handling for mobile devices
+            currentAudio.addEventListener('error', async (e) => {
                 console.error('Audio playback error:', e);
-                showNotification('Error playing the generated audio', 'error');
-            };
+                
+                // Try fallback for mobile devices if error occurs
+                try {
+                    showNotification('Trying alternative playback method...', 'warning');
+                    
+                    // Use fallback TTS if needed
+                    const fallbackResponse = await fetch('/api/fallback-tts', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            text,
+                            voice: selectedVoice
+                        }),
+                    });
+                    
+                    if (!fallbackResponse.ok) {
+                        throw new Error('Fallback TTS failed');
+                    }
+                    
+                    const fallbackBlob = await fallbackResponse.blob();
+                    const fallbackUrl = URL.createObjectURL(fallbackBlob);
+                    
+                    // Try playing the fallback audio
+                    if (currentAudio) {
+                        currentAudio.pause();
+                    }
+                    
+                    currentAudio = new Audio(fallbackUrl);
+                    await currentAudio.play();
+                    
+                } catch (fallbackError) {
+                    console.error('Fallback playback failed:', fallbackError);
+                    showNotification('Audio playback not supported on this device', 'error');
+                }
+            });
             
-            // Ensure audio is ready before playing
-            currentAudio.oncanplaythrough = () => {
-                currentAudio.play()
-                .catch(error => {
-                    console.error('Audio play() failed:', error);
-                    showNotification('Failed to play audio', 'error');
+            // Fix for iOS requiring user interaction
+            const playPromise = currentAudio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn('Auto-play prevented. Waiting for user interaction.', error);
+                    
+                    // Create a play button overlay for mobile devices
+                    createPlayOverlay(() => {
+                        currentAudio.play().catch(e => {
+                            console.error('Play failed after user interaction:', e);
+                            showNotification('Audio playback failed. Try again.', 'error');
+                        });
+                    });
                 });
-                console.log('Audio playback started successfully');
-            };
+            }
             
             // Show the download button if we have an audio file
             updateDownloadButton();
@@ -228,6 +464,35 @@ document.addEventListener('DOMContentLoaded', () => {
             speakBtn.innerHTML = '<i class="fas fa-play"></i> Generate';
         }
     });
+
+    // Create play overlay for mobile devices that require user interaction
+    function createPlayOverlay(callback) {
+        // Remove any existing overlay
+        const existingOverlay = document.getElementById('play-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'play-overlay';
+        overlay.className = 'play-overlay';
+        
+        // Create play button
+        const playButton = document.createElement('button');
+        playButton.className = 'play-overlay-btn';
+        playButton.innerHTML = '<i class="fas fa-play-circle"></i>';
+        
+        // Add event listener
+        playButton.addEventListener('click', () => {
+            callback();
+            overlay.remove();
+        });
+        
+        // Assemble and add to page
+        overlay.appendChild(playButton);
+        document.body.appendChild(overlay);
+    }
 
     // Create download button element
     const downloadBtn = document.createElement('button');
@@ -451,15 +716,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Helper function to update voice select options
-    function updateVoiceSelect(voiceId) {
-        const option = document.createElement('option');
-        option.value = voiceId;
-        option.textContent = 'Custom Voice';
-        voiceSelect.appendChild(option);
-        voiceSelect.value = voiceId;
-    }
-
     // Tab navigation
     const navLinks = document.querySelectorAll('.nav-link');
     const contentAreas = document.querySelectorAll('.content-area');
@@ -632,5 +888,148 @@ document.addEventListener('DOMContentLoaded', () => {
                 notification.remove();
             }, 300);
         }, 3000);
+    }
+
+    // Fix mobile UI issues and optimize button layout
+    function optimizeMobileUI() {
+        const isMobile = window.innerWidth <= 768;
+        const actionButtons = document.querySelector('.action-buttons');
+        
+        // Create a container for the buttons if it doesn't exist
+        let buttonsContainer = document.querySelector('.buttons-container');
+        if (!buttonsContainer) {
+            buttonsContainer = document.createElement('div');
+            buttonsContainer.className = 'buttons-container';
+            
+            // Move all buttons to the container
+            while (actionButtons.firstChild) {
+                buttonsContainer.appendChild(actionButtons.firstChild);
+            }
+            
+            actionButtons.appendChild(buttonsContainer);
+        }
+        
+        // Adjust button sizes and layout based on screen size
+        if (isMobile) {
+            buttonsContainer.classList.add('mobile-layout');
+            
+            // Reorder buttons for better mobile experience
+            const buttons = Array.from(buttonsContainer.children);
+            buttons.forEach(button => {
+                // Make all buttons same size on mobile
+                button.style.flex = '1';
+                button.style.minWidth = 'auto';
+                
+                // Reduce padding for better fit
+                button.style.padding = '8px 12px';
+            });
+        } else {
+            buttonsContainer.classList.remove('mobile-layout');
+            
+            // Reset styles for desktop
+            const buttons = Array.from(buttonsContainer.children);
+            buttons.forEach(button => {
+                button.style.flex = '';
+                button.style.minWidth = '';
+                button.style.padding = '';
+            });
+        }
+    }
+
+    // Handle window resize events
+    window.addEventListener('resize', optimizeMobileUI);
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', () => {
+        // Load voices from the server
+        loadVoices();
+        
+        // Optimize UI for current screen size
+        optimizeMobileUI();
+        
+        // Add some additional CSS for mobile fixes
+        addMobileStyles();
+    });
+
+    // Add additional styles for mobile optimization
+    function addMobileStyles() {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = `
+            /* Mobile UI Fixes */
+            @media (max-width: 768px) {
+                .buttons-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    justify-content: center;
+                    width: 100%;
+                }
+                
+                .buttons-container.mobile-layout {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                
+                .btn {
+                    margin: 4px;
+                    white-space: nowrap;
+                    font-size: 14px;
+                }
+                
+                .custom-select {
+                    width: 100%;
+                }
+                
+                /* Play overlay for mobile */
+                .play-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+                
+                .play-overlay-btn {
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 72px;
+                    cursor: pointer;
+                    animation: pulse 1.5s infinite;
+                }
+                
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); }
+                }
+                
+                /* Improved visibility for voice cards */
+                .voice-card {
+                    min-width: 140px;
+                }
+                
+                /* Better notification positioning */
+                .notification {
+                    bottom: 16px;
+                    right: 16px;
+                    max-width: calc(100% - 32px);
+                }
+            }
+            
+            /* Fix for audio playback on mobile */
+            audio {
+                width: 100%;
+                max-width: 300px;
+                margin: 10px auto;
+                display: block;
+            }
+        `;
+        
+        document.head.appendChild(styleEl);
     }
 }); 

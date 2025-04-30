@@ -39,24 +39,40 @@ if (!fs.existsSync('uploads')) {
     fs.mkdirSync('uploads');
 }
 
-// Available voices with proper gTTS language codes
+// Available voices with both gTTS and Coqui-TTS options
 const AVAILABLE_VOICES = [
+    // gTTS voices
     'en-us',     // Sarah (American Female)
     'en-gb',     // Emma (British Female)
     'en-au',     // Nicole (Australian Female)
     'en-in',     // Priya (Indian Female)
+    
+    // Coqui TTS voices
+    'coqui-en-ljspeech',     // LJSpeech (American Female)
+    'coqui-en-vctk-male',    // VCTK Male (British Male)
+    'coqui-en-vctk-female',  // VCTK Female (British Female)
+    'coqui-en-jenny',        // Jenny (American Female) 
+    'coqui-en-blizzard',     // Blizzard (American Male)
+    'coqui-de-thorsten',     // Thorsten (German Male)
+    'coqui-fr-mai',          // Mai (French Female)
+    'coqui-es-css10',        // CSS10 (Spanish Male)
+    'coqui-it-mai',          // Mai (Italian Female)
+    'coqui-multilingual',    // Multi-Lingual (Various)
+    
     'custom'     // Custom voice cloning
 ];
 
 // Voice configuration
 const VOICE_CONFIG = {
+    // gTTS voices
     'en-us': {
         name: 'Sarah',
         accent: 'American Female',
         pitch: 1.0,
         speed: 1.0,
         lang: 'en',
-        tld: 'com'
+        tld: 'com',
+        engine: 'gtts'
     },
     'en-gb': {
         name: 'Emma',
@@ -64,7 +80,8 @@ const VOICE_CONFIG = {
         pitch: 0.9,  // Lower pitch for British voice
         speed: 0.95, // Slightly slower
         lang: 'en',
-        tld: 'co.uk'
+        tld: 'co.uk',
+        engine: 'gtts'
     },
     'en-au': {
         name: 'Nicole',
@@ -72,7 +89,8 @@ const VOICE_CONFIG = {
         pitch: 1.1,  // Higher pitch for Australian
         speed: 1.05, // Slightly faster
         lang: 'en',
-        tld: 'com.au'
+        tld: 'com.au',
+        engine: 'gtts'
     },
     'en-in': {
         name: 'Priya',
@@ -80,14 +98,120 @@ const VOICE_CONFIG = {
         pitch: 1.05, // Slightly higher pitch
         speed: 0.9,  // Slower pace
         lang: 'en',
-        tld: 'co.in'
+        tld: 'co.in',
+        engine: 'gtts'
+    },
+    
+    // Coqui TTS voices
+    'coqui-en-ljspeech': {
+        name: 'Scarlett',
+        accent: 'American Female (High Quality)',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'en',
+        engine: 'coqui',
+        model: 'tts_models/en/ljspeech/glow-tts',
+        vocoder: 'vocoder_models/universal/libri-tts/fullband-melgan'
+    },
+    'coqui-en-vctk-male': {
+        name: 'James',
+        accent: 'British Male (High Quality)',
+        pitch: 0.95,
+        speed: 1.0,
+        lang: 'en',
+        engine: 'coqui',
+        model: 'tts_models/en/vctk/vits',
+        speaker: 'p273', // Male VCTK speaker
+        vocoder: null  // VITS doesn't need a separate vocoder
+    },
+    'coqui-en-vctk-female': {
+        name: 'Charlotte',
+        accent: 'British Female (High Quality)',
+        pitch: 1.05,
+        speed: 1.0,
+        lang: 'en',
+        engine: 'coqui',
+        model: 'tts_models/en/vctk/vits',
+        speaker: 'p236', // Female VCTK speaker
+        vocoder: null  // VITS doesn't need a separate vocoder
+    },
+    'coqui-en-jenny': {
+        name: 'Jenny',
+        accent: 'American Female (Natural)',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'en',
+        engine: 'coqui',
+        model: 'tts_models/en/jenny/jenny',
+        vocoder: null // This model doesn't need a separate vocoder
+    },
+    'coqui-en-blizzard': {
+        name: 'David',
+        accent: 'American Male (Deep)',
+        pitch: 0.9,
+        speed: 0.95,
+        lang: 'en',
+        engine: 'coqui',
+        model: 'tts_models/en/blizzard2013/capacitron-t2-c50',
+        vocoder: 'vocoder_models/en/blizzard2013/hifigan_v2'
+    },
+    'coqui-de-thorsten': {
+        name: 'Thorsten',
+        accent: 'German Male',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'de',
+        engine: 'coqui',
+        model: 'tts_models/de/thorsten/tacotron2-DDC',
+        vocoder: 'vocoder_models/de/thorsten/hifigan_v1'
+    },
+    'coqui-fr-mai': {
+        name: 'Céline',
+        accent: 'French Female',
+        pitch: 1.05,
+        speed: 1.0,
+        lang: 'fr',
+        engine: 'coqui',
+        model: 'tts_models/fr/mai/tacotron2-DDC',
+        vocoder: 'vocoder_models/universal/libri-tts/fullband-melgan'
+    },
+    'coqui-es-css10': {
+        name: 'Miguel',
+        accent: 'Spanish Male',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'es',
+        engine: 'coqui',
+        model: 'tts_models/es/css10/vits',
+        vocoder: null // VITS doesn't need a separate vocoder
+    },
+    'coqui-it-mai': {
+        name: 'Sophia',
+        accent: 'Italian Female',
+        pitch: 1.05,
+        speed: 1.0,
+        lang: 'it',
+        engine: 'coqui',
+        model: 'tts_models/it/mai/glow-tts',
+        vocoder: 'vocoder_models/universal/libri-tts/fullband-melgan'
+    },
+    'coqui-multilingual': {
+        name: 'Global',
+        accent: 'Multi-Lingual',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'en', // Default language
+        engine: 'coqui',
+        model: 'tts_models/multilingual/multi-dataset/xtts_v2',
+        vocoder: null // This model doesn't need a separate vocoder
     },
     'custom': {
         name: 'Custom Voice',
         accent: 'Cloned Voice',
         pitch: 1.0,
         speed: 1.0,
-        lang: 'en'
+        lang: 'en',
+        engine: 'gtts'
     }
 };
 
@@ -232,7 +356,7 @@ app.post('/convert-voice', requireAuth, requireOnboarding, upload.single('audio'
 // Enhanced TTS endpoint with more features
 app.post('/synthesize', async (req, res) => {
     try {
-        const { text, voice, emotion, pitch = 1.0, speed = 1.0, volume = 1.0 } = req.body;
+        const { text, voice, emotion, pitch = 1.0, speed = 1.0, volume = 1.0, language } = req.body;
         
         if (!text || !text.trim()) {
             return res.status(400).json({ error: 'Text is required and cannot be empty' });
@@ -266,51 +390,19 @@ app.post('/synthesize', async (req, res) => {
         }
 
         // Generate unique filename
-        const filename = `speech_${voiceSettings.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 9);
+        const filename = `speech_${voiceSettings.name}_${timestamp}_${randomId}.mp3`;
         const filepath = path.join(outputDir, filename);
-        const tempFilepath = path.join(outputDir, `temp_${filename}`);
-
-        // Create gTTS instance with voice settings
-        const gtts = new gTTS(modifiedText, voiceSettings.lang);
         
-        // Set TLD for gTTS
-        if (voiceSettings.tld) {
-            gtts.tld = voiceSettings.tld;
+        // Generate speech based on the engine
+        if (voiceSettings.engine === 'gtts') {
+            await generateWithGTTS(modifiedText, voiceSettings, filepath, volume, speed, pitch);
+        } else if (voiceSettings.engine === 'coqui') {
+            await generateWithCoqui(modifiedText, voiceSettings, filepath, volume, speed, pitch, language);
+        } else {
+            throw new Error('Unsupported TTS engine');
         }
-        
-        // Save to temp file
-        await new Promise((resolve, reject) => {
-            gtts.save(tempFilepath, (err) => {
-                if (err) {
-                    console.error('Error saving audio file:', err);
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
-
-        // Calculate final pitch and speed values
-        const finalPitch = (voiceSettings.pitch * parseFloat(pitch)).toFixed(2);
-        const finalSpeed = (voiceSettings.speed * parseFloat(speed)).toFixed(2);
-        
-        // Apply voice modifications using ffmpeg
-        await new Promise((resolve, reject) => {
-            // Command to modify pitch and speed
-            const ffmpegCmd = `ffmpeg -i ${tempFilepath} -af "asetrate=44100*${finalSpeed},aresample=44100,atempo=1/0.9,volume=${volume}" -vn ${filepath}`;
-            
-            exec(ffmpegCmd, (error) => {
-                // Delete the temp file
-                fs.unlink(tempFilepath, () => {});
-                
-                if (error) {
-                    console.error('Error modifying audio:', error);
-                    reject(error);
-                } else {
-                    resolve();
-                }
-            });
-        });
 
         // Track the file for cleanup
         audioFiles.set(filename, {
@@ -320,16 +412,209 @@ app.post('/synthesize', async (req, res) => {
             text: text.substring(0, 50) + (text.length > 50 ? '...' : '') // Store partial text
         });
 
-        // Set content-disposition header to include the filename
+        // Set headers for audio delivery with appropriate caching settings
         res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
         res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         
         // Send the file
-        res.sendFile(filepath);
+        res.sendFile(filepath, { maxAge: 0 });
         
     } catch (error) {
         console.error('Error in speech synthesis:', error);
         res.status(500).json({ error: 'Failed to synthesize speech', details: error.message });
+    }
+});
+
+// Function to generate speech with gTTS
+async function generateWithGTTS(text, voiceSettings, filepath, volume, speed, pitch) {
+    const tempFilepath = filepath.replace('.mp3', '_temp.mp3');
+    
+    // Create gTTS instance with voice settings
+    const gtts = new gTTS(text, voiceSettings.lang);
+    
+    // Set TLD for gTTS
+    if (voiceSettings.tld) {
+        gtts.tld = voiceSettings.tld;
+    }
+    
+    // Save to temp file
+    await new Promise((resolve, reject) => {
+        gtts.save(tempFilepath, (err) => {
+            if (err) {
+                console.error('Error saving audio file:', err);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+
+    // Calculate final pitch and speed values
+    const finalPitch = (voiceSettings.pitch * parseFloat(pitch)).toFixed(2);
+    const finalSpeed = (voiceSettings.speed * parseFloat(speed)).toFixed(2);
+    
+    // Apply voice modifications using ffmpeg
+    await new Promise((resolve, reject) => {
+        // Command to modify pitch and speed
+        const ffmpegCmd = `ffmpeg -i ${tempFilepath} -af "asetrate=44100*${finalSpeed},aresample=44100,atempo=1/0.9,volume=${volume}" -vn -y ${filepath}`;
+        
+        exec(ffmpegCmd, (error) => {
+            // Delete the temp file
+            fs.unlink(tempFilepath, () => {});
+            
+            if (error) {
+                console.error('Error modifying audio:', error);
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+// Function to generate speech with Coqui TTS
+async function generateWithCoqui(text, voiceSettings, filepath, volume, speed, pitch, language) {
+    const tempFilepath = filepath.replace('.mp3', '_temp.wav');
+    
+    // Create command for Coqui TTS
+    let coquiCmd = `tts --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model}`;
+    
+    // Add vocoder if specified
+    if (voiceSettings.vocoder) {
+        coquiCmd += ` --vocoder_name ${voiceSettings.vocoder}`;
+    }
+    
+    // Add speaker if specified
+    if (voiceSettings.speaker) {
+        coquiCmd += ` --speaker_idx ${voiceSettings.speaker}`;
+    }
+    
+    // Add language override if provided
+    if (language && voiceSettings.model.includes('multilingual')) {
+        coquiCmd += ` --language ${language}`;
+    }
+    
+    // Set output path
+    coquiCmd += ` --out_path ${tempFilepath}`;
+    
+    // Run Coqui TTS command
+    await new Promise((resolve, reject) => {
+        exec(coquiCmd, (error, stdout, stderr) => {
+            if (error) {
+                console.error('Error generating speech with Coqui TTS:', error);
+                console.error('stderr:', stderr);
+                console.error('stdout:', stdout);
+                reject(error);
+                return;
+            }
+            resolve();
+        });
+    });
+    
+    // Convert and apply audio effects with ffmpeg
+    await new Promise((resolve, reject) => {
+        // Calculate final values
+        const finalPitch = (voiceSettings.pitch * parseFloat(pitch)).toFixed(2);
+        const finalSpeed = (voiceSettings.speed * parseFloat(speed)).toFixed(2);
+        
+        // Command to convert wav to mp3 and apply effects
+        const ffmpegCmd = `ffmpeg -i ${tempFilepath} -af "asetrate=44100*${finalSpeed},aresample=44100,atempo=1/0.9,volume=${volume}" -vn -y ${filepath}`;
+        
+        exec(ffmpegCmd, (error) => {
+            // Delete the temp file
+            fs.unlink(tempFilepath, () => {});
+            
+            if (error) {
+                console.error('Error processing audio with ffmpeg:', error);
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+// Get voice list with details
+app.get('/api/voices', (req, res) => {
+    const voiceDetails = {};
+    
+    for (const voice of AVAILABLE_VOICES) {
+        voiceDetails[voice] = VOICE_CONFIG[voice];
+    }
+    
+    res.json({ 
+        voices: AVAILABLE_VOICES,
+        details: voiceDetails
+    });
+});
+
+// Check if Coqui TTS is installed
+app.get('/api/check-coqui', (req, res) => {
+    exec('tts --version', (error, stdout, stderr) => {
+        if (error) {
+            res.json({ 
+                installed: false,
+                error: error.message 
+            });
+        } else {
+            res.json({ 
+                installed: true,
+                version: stdout.trim()
+            });
+        }
+    });
+});
+
+// Add a fallback to gTTS if Coqui fails
+app.post('/api/fallback-tts', async (req, res) => {
+    try {
+        const { text, voice } = req.body;
+        
+        if (!text || !text.trim()) {
+            return res.status(400).json({ error: 'Text is required and cannot be empty' });
+        }
+        
+        // Always use gTTS for fallback
+        const fallbackVoice = voice.startsWith('coqui-') ? 'en-us' : voice;
+        const voiceSettings = VOICE_CONFIG[fallbackVoice];
+        
+        // Generate unique filename
+        const filename = `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
+        const filepath = path.join(outputDir, filename);
+        
+        // Generate speech with gTTS
+        const gtts = new gTTS(text, voiceSettings.lang);
+        if (voiceSettings.tld) {
+            gtts.tld = voiceSettings.tld;
+        }
+        
+        await new Promise((resolve, reject) => {
+            gtts.save(filepath, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+        
+        // Track the file for cleanup
+        audioFiles.set(filename, {
+            timestamp: Date.now(),
+            voice: fallbackVoice,
+            text: text.substring(0, 50) + (text.length > 50 ? '...' : '')
+        });
+        
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.sendFile(filepath);
+        
+    } catch (error) {
+        console.error('Error in fallback TTS:', error);
+        res.status(500).json({ error: 'Failed to generate fallback speech' });
     }
 });
 

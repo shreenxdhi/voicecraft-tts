@@ -8,6 +8,8 @@ A modern Text-to-Speech application with multiple English accents, advanced voic
 
 - **Modern UI/UX** with tabbed navigation and card-based layout
 - **Multiple English accents** (US, UK, Australian, Indian)
+- **Coqui TTS Integration** for high-quality voices in multiple languages
+- **Multi-lingual support** via Coqui's XTTS model (16+ languages)
 - **Emotion modifications** (Happy, Sad, Angry, Excited, Neutral)
 - **Advanced voice settings** with speed, pitch, and volume control
 - **Voice cloning capabilities**
@@ -17,8 +19,8 @@ A modern Text-to-Speech application with multiple English accents, advanced voic
 - **Comprehensive authentication system** with multiple sign-in methods
 - **User onboarding flow** for personalized experience
 - **Works offline** (for authenticated users)
+- **Mobile-optimized interface** with responsive design
 - **Secure file handling** with multer
-- **Responsive design** for all screen sizes
 
 ## Live Demo
 
@@ -37,22 +39,59 @@ cd voicecraft-tts
 npm install
 ```
 
-3. Create a `.env` file in the root directory (optional for advanced features):
+3. (Optional but recommended) Install Coqui TTS for high-quality voices:
+```bash
+# Using the npm script
+npm run install-coqui
+
+# Or directly with pip
+pip install TTS
+```
+
+4. Create a `.env` file in the root directory (optional for advanced features):
 ```
 HUGGING_FACE_API_KEY=your_huggingface_key_here
 ```
 
-4. Start the development server:
+5. Start the development server:
 ```bash
 npm run dev
 ```
 
-5. For production:
+6. For production:
 ```bash
 npm start
 ```
 
-6. Open [http://localhost:3001](http://localhost:3001) in your browser
+7. Open [http://localhost:3001](http://localhost:3001) in your browser
+
+## Available Voices
+
+### gTTS Voices (Default)
+- Sarah (American Female)
+- Emma (British Female)
+- Nicole (Australian Female)
+- Priya (Indian Female)
+
+### Coqui TTS Voices (Requires Coqui Installation)
+- Scarlett (American Female, High Quality)
+- James (British Male, High Quality)
+- Charlotte (British Female, High Quality)
+- Jenny (American Female, Natural)
+- David (American Male, Deep)
+- Thorsten (German Male)
+- Céline (French Female)
+- Miguel (Spanish Male)
+- Sophia (Italian Female)
+- Global (Multi-Lingual, 16+ languages)
+
+## Mobile Support
+
+VoiceCraft is fully optimized for mobile devices:
+- Responsive layout for all screen sizes
+- Optimized button arrangement on smaller screens
+- Special handling for audio playback on iOS and Android
+- Fallback mechanisms for devices with limited audio capabilities
 
 ## User Interface
 
@@ -66,60 +105,24 @@ The application features a premium UI with three main sections:
 
 VoiceCraft features a robust authentication system with:
 
-- **Multiple sign-in methods**:
-  - Email/Password
-  - Google
-  - GitHub
-  - Apple
-  - Microsoft
-  - Facebook
+- Email/Password authentication
+- Google OAuth sign-in
+- GitHub authentication
+- Anonymous access with limited features
+- User profile management
+- Email verification workflows
 
-- **User onboarding flow** that collects:
-  - Display name
-  - Preferred voice
-  - Usage purpose
-  - Terms acceptance
+## Troubleshooting
 
-- **Protected routes and API endpoints**
-- **User profile and preferences persistence**
-- **Secure Firebase integration**
+### Audio not playing on mobile
+- Ensure your volume is turned up
+- Try downloading the audio file instead of streaming
+- Some browsers require user interaction before playing audio
 
-### Setting Up Authentication
-
-1. Create a Firebase project at [firebase.google.com](https://firebase.google.com)
-
-2. Enable the authentication methods you want to use:
-   - Email/Password
-   - Google
-   - GitHub
-   - Apple
-   - Microsoft
-   - Facebook
-
-3. Create a Firestore database and set up the security rules
-
-4. Copy your Firebase configuration:
-   - Go to Project Settings > General
-   - Scroll down to "Your apps" section
-   - Copy the Firebase SDK configuration
-
-5. Copy the `firebase-config-template.env` file to `.env` and fill in your Firebase details:
-```bash
-cp firebase-config-template.env .env
-```
-
-6. Install the Auth system dependencies:
-```bash
-cd auth
-npm install
-```
-
-7. Start the auth development server (separate from main app):
-```bash
-npm run dev
-```
-
-8. The authentication server will run on [http://localhost:3002](http://localhost:3002)
+### Coqui TTS voices not available
+- Make sure you've installed Coqui TTS (`npm run install-coqui`)
+- Check that Python is installed and in your PATH
+- Restart the server after installing Coqui
 
 ## Project Structure
 
