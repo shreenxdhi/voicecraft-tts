@@ -1,14 +1,18 @@
 # VoiceCraft TTS
 
-A modern Text-to-Speech application with multiple English accents and text transformation features.
+A modern Text-to-Speech application with multiple English accents and advanced voice transformation features.
 
 ## Features
 
-- Multiple English accents (US))
+- Multiple English accents (US, UK, Australian)
 - Emotion modifications (Happy, Sad, Angry, Excited)
-- Speed control
+- Speed and pitch control
+- Voice cloning capabilities
+- Batch processing support
 - No API key required
 - Works offline
+- Secure file handling with multer
+- Modern UI with responsive design
 
 ## Live Demo
 
@@ -27,12 +31,37 @@ cd voicecraft-tts
 npm install
 ```
 
-3. Start the server:
+3. Start the development server:
+```bash
+npm run dev
+```
+
+4. For production:
 ```bash
 npm start
 ```
 
-4. Open [http://localhost:3001](http://localhost:3001) in your browser
+5. Open [http://localhost:3001](http://localhost:3001) in your browser
+
+## Project Structure
+
+```
+voicecraft-tts/
+├── public/          # Static files
+│   ├── css/        # Stylesheets
+│   ├── js/         # Client-side JavaScript
+│   └── uploads/    # Temporary file storage
+├── server.js       # Main application file
+├── package.json    # Project dependencies
+└── README.md       # Project documentation
+```
+
+## Security Features
+
+- Secure file upload handling
+- Input validation and sanitization
+- Regular dependency updates
+- Protected routes and endpoints
 
 ## Deployment on Render
 
@@ -55,12 +84,25 @@ The application will be automatically deployed and you'll get a URL like `https:
 - Express.js
 - Google Text-to-Speech
 - Web Audio API
-
-## License
-
-MIT License
+- Multer (File upload handling)
+- Modern CSS with Flexbox and Grid
+- Responsive Design
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request. When contributing:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Support
+
+If you encounter any issues or have suggestions, please open an issue on the GitHub repository.
 
