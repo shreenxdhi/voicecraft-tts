@@ -57,85 +57,194 @@ body {
     transform: scale(1.1);
 }
 
-/* Voice controls */
+/* Main header and layout */
+.main-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+}
+.logo-title {
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--primary-color);
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.main-content {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.voice-card {
+    background: var(--secondary-color);
+    border-radius: 18px;
+    box-shadow: 0 4px 24px var(--shadow-color);
+    padding: 32px 28px 28px 28px;
+    min-width: 370px;
+    max-width: 480px;
+    flex: 1 1 370px;
+    margin-bottom: 24px;
+}
+
+.advanced-card {
+    background: var(--secondary-color);
+    border-radius: 18px;
+    box-shadow: 0 4px 24px var(--shadow-color);
+    padding: 32px 28px 28px 28px;
+    min-width: 320px;
+    max-width: 400px;
+    flex: 1 1 320px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.advanced-card h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+}
+.feature-section {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.feature-section:last-child {
+    border-bottom: none;
+}
+.feature-section h4 {
+    font-size: 1.08rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-color);
+}
+
+.voice-conversion {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.batch-textarea {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    margin-bottom: 8px;
+    resize: vertical;
+}
+
+/* Card and control improvements */
 .voice-controls {
-    background-color: var(--secondary-color);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 5px var(--shadow-color);
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    margin-bottom: 0;
 }
 
 .parameter-controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
+    margin-top: 18px;
+    margin-bottom: 10px;
 }
 
-.slider-container {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
+.control-group label,
 .slider-container label {
+    font-size: 1rem;
     font-weight: 500;
     color: var(--text-color);
 }
 
-.slider-container input[type="range"] {
-    width: 100%;
-    height: 8px;
-    border-radius: 4px;
-    background: var(--border-color);
+textarea#text-input {
+    min-height: 90px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1.08rem;
+    margin-bottom: 8px;
+    padding: 12px;
+    transition: border-color 0.2s;
+}
+textarea#text-input:focus {
+    border-color: var(--primary-color);
     outline: none;
-    -webkit-appearance: none;
 }
 
-.slider-container input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    cursor: pointer;
-    transition: transform 0.2s;
+.character-count {
+    font-size: 0.92rem;
+    color: #888;
+    margin-bottom: 8px;
 }
 
-.slider-container input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
-}
-
-/* Action buttons */
-.action-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
+/* Buttons */
 .btn {
-    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 22px;
+    box-shadow: 0 2px 8px var(--shadow-color);
     border: none;
-    border-radius: 5px;
-    background-color: var(--primary-color);
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    outline: none;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.primary-btn {
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    color: #fff;
+}
+.primary-btn:hover {
+    background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+    color: #fff;
+    transform: translateY(-2px) scale(1.03);
+}
+.secondary-btn {
+    background: var(--border-color);
+    color: var(--primary-color);
+}
+.secondary-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+    transform: translateY(-2px) scale(1.03);
+}
+.tertiary-btn {
+    background: #f0f4fa;
+    color: var(--primary-color);
+    border: 1.5px solid var(--primary-color);
+}
+.tertiary-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+    transform: translateY(-2px) scale(1.03);
 }
 
-.btn:hover {
-    background-color: var(--accent-color);
-    transform: translateY(-2px);
+/* Selects */
+select, .feature-select {
+    border-radius: 7px;
+    border: 1.5px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    padding: 8px 12px;
+    font-size: 1rem;
+    margin-left: 0;
+    margin-bottom: 0;
+    transition: border-color 0.2s;
 }
-
-.btn:disabled {
-    background-color: var(--border-color);
-    cursor: not-allowed;
-    transform: none;
+select:focus, .feature-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
 }
 
 /* Notifications */
@@ -166,18 +275,26 @@ body {
     background-color: #00C851;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    .parameter-controls {
-        grid-template-columns: 1fr;
-    }
-    
-    .action-buttons {
+/* Responsive */
+@media (max-width: 1100px) {
+    .main-content {
         flex-direction: column;
+        align-items: stretch;
+        gap: 24px;
     }
-    
-    .btn {
-        width: 100%;
-        justify-content: center;
+    .voice-card, .advanced-card {
+        max-width: 100%;
+        min-width: 0;
+    }
+}
+@media (max-width: 700px) {
+    .container {
+        padding: 10px;
+    }
+    .main-header {
+        margin-bottom: 18px;
+    }
+    .voice-card, .advanced-card {
+        padding: 18px 8px 16px 8px;
     }
 } 
