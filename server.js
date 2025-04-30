@@ -5,6 +5,7 @@ const gTTS = require('gtts');
 const fs = require('fs');
 const axios = require('axios');
 const multer = require('multer');
+const { requireAuth, requireOnboarding } = require('./auth-middleware');
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -12,7 +13,7 @@ const port = process.env.PORT || 3001;
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
@@ -173,8 +174,12 @@ app.get('/voices', (req, res) => {
     res.json({ voices: AVAILABLE_VOICES });
 });
 
-// Voice cloning endpoint
-app.post('/clone-voice', upload.single('audio'), async (req, res) => {
+// Apply authentication to API endpoints that require it
+app.post('/api/tts', requireAuth, requireOnboarding, (req, res) => {
+    // Existing TTS endpoint logic
+});
+
+app.post('/clone-voice', requireAuth, requireOnboarding, upload.single('audio'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No audio file uploaded' });
@@ -196,8 +201,7 @@ app.post('/clone-voice', upload.single('audio'), async (req, res) => {
     }
 });
 
-// Voice conversion endpoint
-app.post('/convert-voice', upload.single('audio'), async (req, res) => {
+app.post('/convert-voice', requireAuth, requireOnboarding, upload.single('audio'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No audio file uploaded' });
@@ -438,6 +442,19 @@ app.post('/api/rewrite', async (req, res) => {
     } catch (error) {
         console.error('Error in rewrite:', error.message);
         res.status(500).json({ error: 'Failed to rewrite text', details: error.message });
+    }
+});
+
+// Add a profile endpoint
+app.get('/api/profile', requireAuth, async (req, res) => {
+    try {
+        // Return the user profile data
+        res.json({ 
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Error getting profile:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

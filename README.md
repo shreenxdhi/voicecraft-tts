@@ -1,6 +1,6 @@
 # VoiceCraft TTS
 
-A modern Text-to-Speech application with multiple English accents, advanced voice transformation features, and a premium UI inspired by ElevenLabs.
+A modern Text-to-Speech application with multiple English accents, advanced voice transformation features, premium authentication system, and a UI inspired by ElevenLabs.
 
 ![VoiceCraft TTS Screenshot](https://i.imgur.com/abc123.png)
 
@@ -14,8 +14,9 @@ A modern Text-to-Speech application with multiple English accents, advanced voic
 - **Voice conversion between accents**
 - **Batch processing support**
 - **Light/Dark mode** with seamless transitions
-- **No API key required**
-- **Works offline**
+- **Comprehensive authentication system** with multiple sign-in methods
+- **User onboarding flow** for personalized experience
+- **Works offline** (for authenticated users)
 - **Secure file handling** with multer
 - **Responsive design** for all screen sizes
 
@@ -61,18 +62,84 @@ The application features a premium UI with three main sections:
 2. **Voice Library** - Browse available voices and clone your own voice
 3. **History** - Access your previously generated audio files
 
+## Authentication System
+
+VoiceCraft features a robust authentication system with:
+
+- **Multiple sign-in methods**:
+  - Email/Password
+  - Google
+  - GitHub
+  - Apple
+  - Microsoft
+  - Facebook
+
+- **User onboarding flow** that collects:
+  - Display name
+  - Preferred voice
+  - Usage purpose
+  - Terms acceptance
+
+- **Protected routes and API endpoints**
+- **User profile and preferences persistence**
+- **Secure Firebase integration**
+
+### Setting Up Authentication
+
+1. Create a Firebase project at [firebase.google.com](https://firebase.google.com)
+
+2. Enable the authentication methods you want to use:
+   - Email/Password
+   - Google
+   - GitHub
+   - Apple
+   - Microsoft
+   - Facebook
+
+3. Create a Firestore database and set up the security rules
+
+4. Copy your Firebase configuration:
+   - Go to Project Settings > General
+   - Scroll down to "Your apps" section
+   - Copy the Firebase SDK configuration
+
+5. Copy the `firebase-config-template.env` file to `.env` and fill in your Firebase details:
+```bash
+cp firebase-config-template.env .env
+```
+
+6. Install the Auth system dependencies:
+```bash
+cd auth
+npm install
+```
+
+7. Start the auth development server (separate from main app):
+```bash
+npm run dev
+```
+
+8. The authentication server will run on [http://localhost:3002](http://localhost:3002)
+
 ## Project Structure
 
 ```
 voicecraft-tts/
-├── index.html        # Main HTML file
-├── styles.css        # Stylesheet
-├── script.js         # Client-side JavaScript
-├── server.js         # Express server and API endpoints
-├── output/           # Temporary storage for generated audio
-├── uploads/          # Temporary file storage for voice samples
-├── package.json      # Project dependencies
-└── README.md         # Project documentation
+├── index.html              # Main HTML file
+├── styles.css              # Main stylesheet
+├── script.js               # Client-side JavaScript
+├── server.js               # Express server and API endpoints
+├── auth-integration.js     # Auth integration for main app
+├── auth-middleware.js      # Auth middleware for Express
+├── output/                 # Temporary storage for generated audio
+├── uploads/                # Temporary file storage for voice samples
+├── auth/                   # Authentication system
+│   ├── components/         # Auth UI components
+│   ├── pages/              # Auth pages (login, register, etc.)
+│   ├── utils/              # Auth utilities
+│   └── styles/             # Auth stylesheets
+├── package.json            # Project dependencies
+└── README.md               # Project documentation
 ```
 
 ## API Endpoints
