@@ -27,6 +27,8 @@ if (!fs.existsSync('uploads')) {
 // Available voices with proper gTTS language codes
 const AVAILABLE_VOICES = [
     'en-us',     // Sarah (American Female)
+    'en-gb',     // Emma (British Female)
+    'en-au',     // Nicole (Australian Female)
     'en-in',     // Priya (Indian Female)
     'custom'     // Custom voice cloning
 ];
@@ -40,6 +42,22 @@ const VOICE_CONFIG = {
         speed: 1.0,
         lang: 'en',
         tld: 'com'
+    },
+    'en-gb': {
+        name: 'Emma',
+        accent: 'British Female',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'en',
+        tld: 'co.uk'
+    },
+    'en-au': {
+        name: 'Nicole',
+        accent: 'Australian Female',
+        pitch: 1.0,
+        speed: 1.0,
+        lang: 'en',
+        tld: 'com.au'
     },
     'en-in': {
         name: 'Priya',
@@ -237,6 +255,7 @@ app.post('/synthesize', async (req, res) => {
         const gtts = new gTTS(modifiedText, voiceSettings.lang);
         gtts.speed = speed || voiceSettings.speed;
         gtts.tld = voiceSettings.tld;
+        gtts.pitch = pitch || voiceSettings.pitch;
 
         // Save to file
         await new Promise((resolve, reject) => {
@@ -253,35 +272,24 @@ app.post('/synthesize', async (req, res) => {
         // Store file metadata
         audioFiles.set(filename, {
             timestamp: Date.now(),
-            text: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
-            voice,
-            emotion,
-            pitch,
-            speed,
-            volume
+            voice: voiceSettings.name,
+            emotion: emotion,
+            pitch: pitch,
+            speed: speed,
+            volume: volume
         });
 
-        // Stream the file
-        const stat = fs.statSync(filepath);
-        res.writeHead(200, {
-            'Content-Type': 'audio/mpeg',
-            'Content-Length': stat.size,
-            'X-Audio-Filename': filename
-        });
-
-        const readStream = fs.createReadStream(filepath);
-        readStream.pipe(res);
-
-        readStream.on('error', (error) => {
-            console.error('Error streaming file:', error);
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Error streaming audio file' });
+        // Send the audio file
+        res.sendFile(filepath, (err) => {
+            if (err) {
+                console.error('Error sending file:', err);
+                res.status(500).json({ error: 'Failed to send audio file' });
             }
         });
 
     } catch (error) {
-        console.error('Error in TTS synthesis:', error);
-        res.status(500).json({ error: 'Failed to synthesize speech: ' + error.message });
+        console.error('Error in synthesis:', error);
+        res.status(500).json({ error: 'Failed to generate speech' });
     }
 });
 

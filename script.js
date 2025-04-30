@@ -48,18 +48,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const pitchDisplay = pitchSlider.nextElementSibling;
     const volumeDisplay = volumeSlider.nextElementSibling;
 
-    // Update parameter displays
+    // Update parameter displays with proper formatting
     speedSlider.addEventListener('input', () => {
-        speedDisplay.textContent = `${speedSlider.value}x`;
+        speedDisplay.textContent = `${parseFloat(speedSlider.value).toFixed(1)}x`;
     });
 
     pitchSlider.addEventListener('input', () => {
-        pitchDisplay.textContent = pitchSlider.value;
+        pitchDisplay.textContent = parseFloat(pitchSlider.value).toFixed(1);
     });
 
     volumeSlider.addEventListener('input', () => {
-        volumeDisplay.textContent = volumeSlider.value;
+        volumeDisplay.textContent = `${parseFloat(volumeSlider.value).toFixed(0)}%`;
     });
+
+    // Initialize parameter displays
+    speedDisplay.textContent = `${parseFloat(speedSlider.value).toFixed(1)}x`;
+    pitchDisplay.textContent = parseFloat(pitchSlider.value).toFixed(1);
+    volumeDisplay.textContent = `${parseFloat(volumeSlider.value).toFixed(0)}%`;
 
     // Action buttons
     const speakBtn = document.getElementById('speak-btn');
@@ -89,9 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     text,
                     voice: voiceSelect.value,
                     emotion: emotionSelect.value,
-                    speed: speedSlider.value,
-                    pitch: pitchSlider.value,
-                    volume: volumeSlider.value
+                    speed: parseFloat(speedSlider.value),
+                    pitch: parseFloat(pitchSlider.value),
+                    volume: parseFloat(volumeSlider.value)
                 })
             });
 
@@ -110,8 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             currentAudio = new Audio(audioUrl);
-            currentAudio.volume = volumeSlider.value;
-            currentAudio.playbackRate = speedSlider.value;
+            currentAudio.volume = parseFloat(volumeSlider.value) / 100; // Convert to 0-1 range
+            currentAudio.playbackRate = parseFloat(speedSlider.value);
             currentAudio.play();
 
             // Show success message
