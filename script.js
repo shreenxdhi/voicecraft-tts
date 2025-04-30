@@ -113,54 +113,81 @@ document.addEventListener('DOMContentLoaded', () => {
     const speakBtn = document.getElementById('speak-btn');
     const stopBtn = document.getElementById('stop-btn');
     let currentAudio = null;
+    let currentAudioFilename = null;
 
-    // Speak button functionality
+    // Enhanced TTS request handling
     speakBtn.addEventListener('click', async () => {
         const text = textInput.value.trim();
+        
         if (!text) {
-            showNotification('Please enter some text', 'error');
+            showNotification('Please enter some text first', 'error');
+            return;
+        }
+        
+        if (text.length > 2000) {
+            showNotification('Text is too long. Maximum is 2000 characters.', 'error');
             return;
         }
 
         try {
-            // Show loading state
             speakBtn.disabled = true;
             speakBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
+            
+            const emotion = emotionSelect ? emotionSelect.value : 'neutral';
+            const speedValue = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+            const pitchValue = pitchSlider ? parseFloat(pitchSlider.value) : 1.0;
+            const volumeValue = volumeSlider ? parseFloat(volumeSlider.value) : 100;
+            
             console.log('Sending TTS request with:', {
                 text,
                 voice: voiceSelect.value,
-                emotion: emotionSelect.value,
-                speed: parseFloat(speedSlider.value),
-                pitch: parseFloat(pitchSlider.value),
-                volume: parseFloat(volumeSlider.value) / 100
+                emotion,
+                speed: speedValue,
+                pitch: pitchValue,
+                volume: volumeValue
             });
 
-            // Send to backend
             const response = await fetch('/synthesize', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     text,
                     voice: voiceSelect.value,
-                    emotion: emotionSelect.value,
-                    speed: parseFloat(speedSlider.value),
-                    pitch: parseFloat(pitchSlider.value),
-                    volume: parseFloat(volumeSlider.value)
-                })
+                    emotion,
+                    speed: speedValue,
+                    pitch: pitchValue,
+                    volume: volumeValue / 100 // Convert to 0-1 range
+                }),
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Server response error:', response.status, errorData);
+                const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to generate speech');
             }
 
             // Get the audio data
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
+            
+            // Extract filename from the response header if present
+            const contentDisposition = response.headers.get('content-disposition');
+            let filename = null;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                    currentAudioFilename = filename; // Store the filename
+                }
+            } else {
+                // If header isn't present, try to extract from URL
+                const urlParts = response.url.split('/');
+                const lastPart = urlParts[urlParts.length - 1];
+                if (lastPart && lastPart.includes('.mp3')) {
+                    currentAudioFilename = lastPart;
+                }
+            }
 
             console.log('Received audio blob:', audioBlob.type, audioBlob.size);
 
@@ -169,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentAudio.pause();
                 currentAudio = null;
             }
-
+            
             currentAudio = new Audio(audioUrl);
             currentAudio.volume = parseFloat(volumeSlider.value) / 100; // Convert to 0-1 range
             
@@ -182,35 +209,77 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ensure audio is ready before playing
             currentAudio.oncanplaythrough = () => {
                 currentAudio.play()
-                    .then(() => {
-                        console.log('Audio playback started successfully');
-                    })
-                    .catch(error => {
-                        console.error('Audio play() failed:', error);
-                        showNotification('Failed to play audio', 'error');
-                    });
+                .catch(error => {
+                    console.error('Audio play() failed:', error);
+                    showNotification('Failed to play audio', 'error');
+                });
+                console.log('Audio playback started successfully');
             };
-
-            // Show success message
+            
+            // Show the download button if we have an audio file
+            updateDownloadButton();
+            
             showNotification('Speech generated successfully!', 'success');
-
         } catch (error) {
-            console.error('Error generating speech:', error);
-            showNotification(`Failed to generate speech: ${error.message}`, 'error');
+            console.error('TTS error:', error);
+            showNotification(error.message || 'Failed to generate speech', 'error');
         } finally {
-            // Reset button state
             speakBtn.disabled = false;
             speakBtn.innerHTML = '<i class="fas fa-play"></i> Generate';
         }
     });
 
-    // Stop button functionality
+    // Create download button element
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'btn secondary-btn download-btn';
+    downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download';
+    downloadBtn.style.display = 'none'; // Hide initially
+    downloadBtn.addEventListener('click', downloadAudio);
+
+    // Add download button to the action buttons div
+    const actionButtons = document.querySelector('.action-buttons');
+    actionButtons.appendChild(downloadBtn);
+
+    // Function to update download button visibility
+    function updateDownloadButton() {
+        if (currentAudioFilename) {
+            downloadBtn.style.display = 'inline-flex';
+        } else {
+            downloadBtn.style.display = 'none';
+        }
+    }
+
+    // Function to download the current audio
+    function downloadAudio() {
+        if (!currentAudioFilename) {
+            showNotification('No audio available to download', 'error');
+            return;
+        }
+        
+        try {
+            // Create a download link
+            const downloadLink = document.createElement('a');
+            downloadLink.href = `/download/${currentAudioFilename}`;
+            downloadLink.download = `voicecraft_${new Date().toISOString().replace(/[:.]/g, '-')}.mp3`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            showNotification('Download started!', 'success');
+        } catch (error) {
+            console.error('Download error:', error);
+            showNotification('Failed to download audio', 'error');
+        }
+    }
+
+    // Reset when stopping
     stopBtn.addEventListener('click', () => {
         if (currentAudio) {
             currentAudio.pause();
             currentAudio.currentTime = 0;
             currentAudio = null;
         }
+        // Don't reset currentAudioFilename so users can still download
     });
 
     // Advanced Features

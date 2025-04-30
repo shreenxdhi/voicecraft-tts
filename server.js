@@ -316,9 +316,14 @@ app.post('/synthesize', async (req, res) => {
         audioFiles.set(filename, {
             timestamp: Date.now(),
             voice: voice,
-            emotion: emotion
+            emotion: emotion,
+            text: text.substring(0, 50) + (text.length > 50 ? '...' : '') // Store partial text
         });
 
+        // Set content-disposition header to include the filename
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        
         // Send the file
         res.sendFile(filepath);
         
@@ -371,8 +376,17 @@ app.get('/download/:filename', (req, res) => {
         }
 
         const metadata = audioFiles.get(filename);
-        const downloadName = `${metadata.voice}_${metadata.emotion || 'neutral'}_${Date.now()}.mp3`;
+        // Create a user-friendly filename
+        const voiceName = metadata.voice || 'voice';
+        const emotion = metadata.emotion || 'neutral';
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const downloadName = `voicecraft_${voiceName}_${emotion}_${timestamp}.mp3`;
 
+        // Set headers for download
+        res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+        res.setHeader('Content-Type', 'audio/mpeg');
+
+        // Send the file as a download
         res.download(filepath, downloadName, (err) => {
             if (err) {
                 console.error('Error downloading file:', err);
