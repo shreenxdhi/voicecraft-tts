@@ -2,26 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#4f46e5">
-    <meta name="description" content="VoiceCraft TTS - Modern Text-to-Speech with multiple voices and languages">
-    <title>VoiceCraft TTS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Simple Text-to-Speech tool">
+    <title>Text to Speech</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="mobile-audio-fix.js"></script>
 </head>
 <body>
     <div class="container">
         <header class="app-header">
-            <h1 class="logo">VoiceCraft TTS</h1>
-            <nav class="main-nav">
-                <a href="#" class="nav-link active"><i class="fas fa-microphone"></i> Synthesize</a>
-                <a href="#" class="nav-link"><i class="fas fa-clock"></i> History</a>
-                <a href="#" class="nav-link"><i class="fas fa-sliders-h"></i> Settings</a>
-                <a href="#" class="nav-link"><i class="fas fa-info-circle"></i> About</a>
-            </nav>
+            <h1 class="logo">Text to Speech</h1>
+            <div class="header-actions">
+                <button id="clear-button" class="action-button">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
         </header>
         
         <div class="card">
