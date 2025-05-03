@@ -21,12 +21,13 @@ A versatile text-to-speech (TTS) application with support for Google TTS and Coq
 - npm (v6 or higher)
 - ffmpeg (optional, but recommended for audio processing)
 - Python 3.9-3.11 (optional, for Coqui TTS)
+- espeak-ng or espeak (required for Coqui TTS phonemization)
 
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/tts.git
-cd tts
+git clone https://github.com/shreenxdhi/voicecraft-tts.git
+cd voicecraft-tts
 ```
 
 ### Step 2: Install Node.js dependencies
@@ -52,7 +53,22 @@ sudo apt-get install ffmpeg
 **Windows:**
 Download from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
 
-### Step 4: Install Coqui TTS (optional, for high-quality voices)
+### Step 4: Install espeak (required for Coqui TTS)
+
+**macOS:**
+```bash
+brew install espeak
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install espeak-ng
+```
+
+**Windows:**
+Download from [https://github.com/espeak-ng/espeak-ng/releases](https://github.com/espeak-ng/espeak-ng/releases)
+
+### Step 5: Install Coqui TTS (optional, for high-quality voices)
 
 1. Create a Python virtual environment:
 
@@ -74,6 +90,16 @@ source coqui-env-py311/bin/activate
 pip install TTS
 ```
 
+3. Download the required models:
+
+```bash
+# On macOS/Linux:
+npm run download-models
+
+# On Windows:
+npm run download-models-win
+```
+
 ## Running the Application
 
 ### Basic Run (Google TTS only)
@@ -86,10 +112,10 @@ npm start
 
 ```bash
 # On macOS/Linux:
-export VIRTUAL_ENV=$PWD/coqui-env-py311 && node server.js --dev
+npm run start-with-coqui
 
 # On Windows:
-# set VIRTUAL_ENV=%CD%\coqui-env-py311 && node server.js --dev
+npm run start-with-coqui-win
 ```
 
 Then open your browser to [http://localhost:3001](http://localhost:3001)
@@ -106,13 +132,29 @@ Then open your browser to [http://localhost:3001](http://localhost:3001)
 - Scarlett (American Female, high quality)
 - James (British Male, high quality)
 - Charlotte (British Female, high quality)
-- Jenny (American Female, natural)
-- David (American Male, deep)
 - Thorsten (German Male)
 - Céline (French Female)
 - Miguel (Spanish Male)
-- Sophia (Italian Female)
-- Global (Multi-lingual)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"All voices sound robotic and the same"**: This typically means that Coqui TTS is not being used correctly. Try the following:
+   - Check if espeak is installed (`brew install espeak` on macOS)
+   - Make sure the Python virtual environment is activated when running the server
+   - Run `npm run download-models` to download the required models
+   - Start the server with `npm run start-with-coqui`
+
+2. **"Failed to synthesize speech" error**: This may occur if the Coqui TTS models have not been properly downloaded. Try:
+   - Running `npm run download-models` to install the Coqui TTS models
+   - Check that the virtual environment is correctly set up
+   - Check logs for specific errors (missing models, missing espeak, etc.)
+
+3. **No Coqui voices appear in dropdown**: The server automatically detects which models are available. Make sure:
+   - Coqui TTS is installed (`pip install TTS` in the virtual environment)
+   - Models are downloaded (run `npm run download-models`)
+   - The server is running with the virtual environment (`npm run start-with-coqui`)
 
 ## Fallback Mechanism
 
