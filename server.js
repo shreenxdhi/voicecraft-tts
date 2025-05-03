@@ -47,32 +47,17 @@ if (!fs.existsSync('uploads')) {
     fs.mkdirSync('uploads');
 }
 
-// Available voices with both gTTS and Coqui-TTS options
-const AVAILABLE_VOICES = [
-    // gTTS voices
-    'en-us',     // Sarah (American Female)
-    'en-gb',     // Emma (British Female)
-    'en-au',     // Nicole (Australian Female)
-    'en-in',     // Priya (Indian Female)
-    
-    // Coqui TTS voices
-    'coqui-en-ljspeech',     // LJSpeech (American Female)
-    'coqui-en-vctk-male',    // VCTK Male (British Male)
-    'coqui-en-vctk-female',  // VCTK Female (British Female)
-    'coqui-en-jenny',        // Jenny (American Female) 
-    'coqui-en-blizzard',     // Blizzard (American Male)
-    'coqui-de-thorsten',     // Thorsten (German Male)
-    'coqui-fr-mai',          // Mai (French Female)
-    'coqui-es-css10',        // CSS10 (Spanish Male)
-    'coqui-it-mai',          // Mai (Italian Female)
-    'coqui-multilingual',    // Multi-Lingual (Various)
-    
-    'custom'     // Custom voice cloning
+// Define global variables for TTS engines availability
+let COQUI_INSTALLED = false;
+let FFMPEG_INSTALLED = false;
+
+// Define available voices based on installed models
+let AVAILABLE_VOICES = [
+    'en-us', 'en-gb', 'en-au', 'en-in'  // Always include gTTS voices
 ];
 
 // Voice configuration
 const VOICE_CONFIG = {
-    // gTTS voices
     'en-us': {
         name: 'Sarah',
         accent: 'American Female',
@@ -85,8 +70,8 @@ const VOICE_CONFIG = {
     'en-gb': {
         name: 'Emma',
         accent: 'British Female',
-        pitch: 0.9,  // Lower pitch for British voice
-        speed: 0.95, // Slightly slower
+        pitch: 0.9,
+        speed: 0.95,
         lang: 'en',
         tld: 'co.uk',
         engine: 'gtts'
@@ -94,8 +79,8 @@ const VOICE_CONFIG = {
     'en-au': {
         name: 'Nicole',
         accent: 'Australian Female',
-        pitch: 1.1,  // Higher pitch for Australian
-        speed: 1.05, // Slightly faster
+        pitch: 1.1,
+        speed: 1.05,
         lang: 'en',
         tld: 'com.au',
         engine: 'gtts'
@@ -103,14 +88,12 @@ const VOICE_CONFIG = {
     'en-in': {
         name: 'Priya',
         accent: 'Indian Female',
-        pitch: 1.05, // Slightly higher pitch
-        speed: 0.9,  // Slower pace
+        pitch: 1.05,
+        speed: 0.9,
         lang: 'en',
         tld: 'co.in',
         engine: 'gtts'
     },
-    
-    // Coqui TTS voices
     'coqui-en-ljspeech': {
         name: 'Scarlett',
         accent: 'American Female (High Quality)',
@@ -119,7 +102,7 @@ const VOICE_CONFIG = {
         lang: 'en',
         engine: 'coqui',
         model: 'tts_models/en/ljspeech/glow-tts',
-        vocoder: 'vocoder_models/universal/libri-tts/fullband-melgan'
+        vocoder: 'vocoder_models/en/ljspeech/multiband-melgan'
     },
     'coqui-en-vctk-male': {
         name: 'James',
@@ -129,8 +112,8 @@ const VOICE_CONFIG = {
         lang: 'en',
         engine: 'coqui',
         model: 'tts_models/en/vctk/vits',
-        speaker: 'p273', // Male VCTK speaker
-        vocoder: null  // VITS doesn't need a separate vocoder
+        speaker: 'p273',
+        vocoder: null
     },
     'coqui-en-vctk-female': {
         name: 'Charlotte',
@@ -140,28 +123,8 @@ const VOICE_CONFIG = {
         lang: 'en',
         engine: 'coqui',
         model: 'tts_models/en/vctk/vits',
-        speaker: 'p236', // Female VCTK speaker
-        vocoder: null  // VITS doesn't need a separate vocoder
-    },
-    'coqui-en-jenny': {
-        name: 'Jenny',
-        accent: 'American Female (Natural)',
-        pitch: 1.0,
-        speed: 1.0,
-        lang: 'en',
-        engine: 'coqui',
-        model: 'tts_models/en/jenny/jenny',
-        vocoder: null // This model doesn't need a separate vocoder
-    },
-    'coqui-en-blizzard': {
-        name: 'David',
-        accent: 'American Male (Deep)',
-        pitch: 0.9,
-        speed: 0.95,
-        lang: 'en',
-        engine: 'coqui',
-        model: 'tts_models/en/blizzard2013/capacitron-t2-c50',
-        vocoder: 'vocoder_models/en/blizzard2013/hifigan_v2'
+        speaker: 'p236',
+        vocoder: null
     },
     'coqui-de-thorsten': {
         name: 'Thorsten',
@@ -191,27 +154,17 @@ const VOICE_CONFIG = {
         lang: 'es',
         engine: 'coqui',
         model: 'tts_models/es/css10/vits',
-        vocoder: null // VITS doesn't need a separate vocoder
-    },
-    'coqui-it-mai': {
-        name: 'Sophia',
-        accent: 'Italian Female',
-        pitch: 1.05,
-        speed: 1.0,
-        lang: 'it',
-        engine: 'coqui',
-        model: 'tts_models/it/mai/glow-tts',
-        vocoder: 'vocoder_models/universal/libri-tts/fullband-melgan'
+        vocoder: null
     },
     'coqui-multilingual': {
         name: 'Global',
         accent: 'Multi-Lingual',
         pitch: 1.0,
         speed: 1.0,
-        lang: 'en', // Default language
-        engine: 'coqui',
+        lang: 'en',
+        engine: 'gtts', // Fallback to gtts for now until model is fixed
         model: 'tts_models/multilingual/multi-dataset/xtts_v2',
-        vocoder: null // This model doesn't need a separate vocoder
+        vocoder: null
     },
     'custom': {
         name: 'Custom Voice',
@@ -564,64 +517,21 @@ async function generateWithGTTS(text, voiceSettings, filepath, volume, speed, pi
     });
 }
 
-// Check system requirements at startup
-let COQUI_INSTALLED = false;
-let FFMPEG_INSTALLED = false;
-
-// Check for Coqui TTS installation
-function checkCoquiInstallation() {
-    return new Promise((resolve) => {
-        // Use the full path to tts in the virtual environment
-        const ttsCommand = process.env.VIRTUAL_ENV 
-            ? `${process.env.VIRTUAL_ENV}/bin/tts --list_models` 
-            : './coqui-env-py311/bin/tts --list_models';
-            
-        exec(ttsCommand, (error, stdout) => {
-            if (error) {
-                console.log('⚠️ Coqui TTS is not installed. Coqui voices will fall back to gTTS.');
-                console.log('To install Coqui TTS, run: npm run install-coqui');
-                console.log('Error:', error.message);
-                COQUI_INSTALLED = false;
-            } else {
-                console.log('✅ Coqui TTS is installed.');
-                COQUI_INSTALLED = true;
-            }
-            resolve(COQUI_INSTALLED);
-        });
-    });
-}
-
-// Check for ffmpeg installation
-function checkFFmpegInstallation() {
-    return new Promise((resolve) => {
-        exec('ffmpeg -version', (error, stdout) => {
-            if (error) {
-                console.log('⚠️ ffmpeg is not installed. Audio processing features will be limited.');
-                console.log('To install ffmpeg:');
-                console.log('- macOS: brew install ffmpeg');
-                console.log('- Ubuntu/Debian: sudo apt-get install ffmpeg');
-                console.log('- Windows: Download from https://ffmpeg.org/download.html');
-                FFMPEG_INSTALLED = false;
-            } else {
-                const versionMatch = stdout.match(/version\s([^\s]+)/);
-                console.log('✅ ffmpeg is installed. Version:', versionMatch ? versionMatch[1] : 'unknown');
-                FFMPEG_INSTALLED = true;
-            }
-            resolve(FFMPEG_INSTALLED);
-        });
-    });
-}
-
 // Run checks at startup
 async function checkSystemRequirements() {
     await checkCoquiInstallation();
     await checkFFmpegInstallation();
     
-    console.log('\n🚀 TTS System Status:');
-    console.log(`- Coqui TTS: ${COQUI_INSTALLED ? 'Installed ✅' : 'Not installed ⚠️'}`);
-    console.log(`- ffmpeg: ${FFMPEG_INSTALLED ? 'Installed ✅' : 'Not installed ⚠️'}`);
-    console.log(`- gTTS: Installed ✅`);
-    console.log(`- Total voices available: ${AVAILABLE_VOICES.length}\n`);
+    // Update available voices based on installed models
+    await updateAvailableVoices();
+    
+    console.log('\n-------------------------------------');
+    console.log('System status:');
+    console.log(`Coqui TTS: ${COQUI_INSTALLED ? '✅ Installed' : '❌ Not installed'}`);
+    console.log(`ffmpeg: ${FFMPEG_INSTALLED ? '✅ Installed' : '❌ Not installed'}`);
+    console.log('Available voices:');
+    console.log(AVAILABLE_VOICES);
+    console.log('-------------------------------------\n');
 }
 
 // Add API endpoint to check system status
@@ -634,20 +544,94 @@ app.get('/api/system-status', (req, res) => {
     });
 });
 
-// Get voice info for client
-app.get('/api/voices', (req, res) => {
-    // Only return Coqui voices if Coqui is installed
-    const availableVoices = AVAILABLE_VOICES.filter(voice => {
-        const voiceConfig = VOICE_CONFIG[voice] || {};
-        return voiceConfig.engine !== 'coqui' || COQUI_INSTALLED;
-    });
+// Function to verify which Coqui models are actually available
+async function getAvailableCoquiModels() {
+    if (!COQUI_INSTALLED) {
+        return [];
+    }
     
-    res.json({
-        voices: availableVoices,
-        details: VOICE_CONFIG,
-        coqui_installed: COQUI_INSTALLED,
-        ffmpeg_installed: FFMPEG_INSTALLED
-    });
+    try {
+        // Use the full path to tts in the virtual environment
+        const ttsBin = process.env.VIRTUAL_ENV 
+            ? `${process.env.VIRTUAL_ENV}/bin/tts` 
+            : './coqui-env-py311/bin/tts';
+            
+        const { stdout } = await new Promise((resolve, reject) => {
+            exec(`${ttsBin} --list_models`, (error, stdout, stderr) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                resolve({ stdout, stderr });
+            });
+        });
+        
+        // Parse the output to get available models
+        const availableModels = [];
+        const lines = stdout.split('\n');
+        
+        for (const line of lines) {
+            const match = line.match(/\d+:\s+(tts_models\/[^\s]+)\s+(\[already downloaded\])?/);
+            if (match && match[2] === '[already downloaded]') {
+                availableModels.push(match[1]);
+            }
+        }
+        
+        return availableModels;
+    } catch (error) {
+        console.error('Error getting available Coqui models:', error);
+        return [];
+    }
+}
+
+// Function to update available voices based on installed models
+async function updateAvailableVoices() {
+    // Start with gTTS voices
+    AVAILABLE_VOICES = ['en-us', 'en-gb', 'en-au', 'en-in'];
+    
+    if (!COQUI_INSTALLED) {
+        console.log('Coqui TTS not installed, only using gTTS voices');
+        return;
+    }
+    
+    try {
+        const availableModels = await getAvailableCoquiModels();
+        console.log('Available Coqui models:', availableModels);
+        
+        // Add Coqui voices that have their models available
+        for (const [voiceId, config] of Object.entries(VOICE_CONFIG)) {
+            if (config.engine === 'coqui') {
+                const modelName = config.model;
+                
+                if (availableModels.includes(modelName)) {
+                    console.log(`Adding Coqui voice: ${voiceId} (${config.name})`);
+                    AVAILABLE_VOICES.push(voiceId);
+                } else {
+                    console.log(`Skipping Coqui voice: ${voiceId} (${config.name}) - model not available`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error updating available voices:', error);
+    }
+}
+
+// Define API endpoints for voices and system status
+app.get('/api/voices', async (req, res) => {
+    try {
+        // Fresh check of available voices
+        await updateAvailableVoices();
+        
+        res.json({
+            voices: AVAILABLE_VOICES,
+            coqui_installed: COQUI_INSTALLED,
+            ffmpeg_installed: FFMPEG_INSTALLED,
+            voice_config: VOICE_CONFIG
+        });
+    } catch (error) {
+        console.error('Error in /api/voices:', error);
+        res.status(500).json({ error: 'Failed to get voices' });
+    }
 });
 
 // Modified generateWithCoqui function with better error handling for mobile
@@ -702,7 +686,11 @@ async function generateWithCoqui(text, voiceSettings, filepath, volume, speed, p
             ? `${process.env.VIRTUAL_ENV}/bin/tts` 
             : './coqui-env-py311/bin/tts';
             
-        let coquiCmd = `${ttsBin} --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model}`;
+        // Set a custom models path if it exists
+        const modelsDir = path.join(__dirname, '.models');
+        const modelsPath = fs.existsSync(modelsDir) ? `--custom_models_path ${modelsDir} ` : '';
+            
+        let coquiCmd = `${ttsBin} --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model} ${modelsPath}`;
         
         // Add vocoder if specified
         if (voiceSettings.vocoder) {
@@ -1089,6 +1077,50 @@ app.use(function(req, res) {
         res.type('txt').send('Not found');
     }
 });
+
+// Check for Coqui TTS installation
+function checkCoquiInstallation() {
+    return new Promise((resolve) => {
+        // Use the full path to tts in the virtual environment
+        const ttsCommand = process.env.VIRTUAL_ENV 
+            ? `${process.env.VIRTUAL_ENV}/bin/tts --list_models` 
+            : './coqui-env-py311/bin/tts --list_models';
+            
+        exec(ttsCommand, (error, stdout) => {
+            if (error) {
+                console.log('⚠️ Coqui TTS is not installed. Coqui voices will fall back to gTTS.');
+                console.log('To install Coqui TTS, run: npm run install-coqui');
+                console.log('Error:', error.message);
+                COQUI_INSTALLED = false;
+            } else {
+                console.log('✅ Coqui TTS is installed.');
+                COQUI_INSTALLED = true;
+            }
+            resolve(COQUI_INSTALLED);
+        });
+    });
+}
+
+// Check for ffmpeg installation
+function checkFFmpegInstallation() {
+    return new Promise((resolve) => {
+        exec('ffmpeg -version', (error, stdout) => {
+            if (error) {
+                console.log('⚠️ ffmpeg is not installed. Audio processing features will be limited.');
+                console.log('To install ffmpeg:');
+                console.log('- macOS: brew install ffmpeg');
+                console.log('- Ubuntu/Debian: sudo apt-get install ffmpeg');
+                console.log('- Windows: Download from https://ffmpeg.org/download.html');
+                FFMPEG_INSTALLED = false;
+            } else {
+                const versionMatch = stdout.match(/version\s([^\s]+)/);
+                console.log('✅ ffmpeg is installed. Version:', versionMatch ? versionMatch[1] : 'unknown');
+                FFMPEG_INSTALLED = true;
+            }
+            resolve(FFMPEG_INSTALLED);
+        });
+    });
+}
 
 // Start the server
 app.listen(port, async () => {

@@ -8,6 +8,8 @@
     "start-windows": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && node server.js",
     "dev": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && nodemon server.js",
     "install-coqui": "pip install TTS",
+    "download-models": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && $PWD/coqui-env-py311/bin/tts --list_models && $PWD/coqui-env-py311/bin/tts --text \"Test\" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav && $PWD/coqui-env-py311/bin/tts --text \"Test\" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav && $PWD/coqui-env-py311/bin/tts --text \"Test\" --model_name tts_models/en/jenny/jenny --out_path test_jenny.wav",
+    "download-models-win": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && %CD%\\coqui-env-py311\\Scripts\\tts --list_models && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/jenny/jenny --out_path test_jenny.wav",
     "start-no-auth": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && DEV_MODE=true node server.js --dev",
     "start-with-coqui": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && node server.js --dev",
     "start-with-coqui-win": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && node server.js --dev"
@@ -17,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/tts"
+    "url": "https://github.com/shreenxdhi/voicecraft-tts"
   },
   "keywords": [
     "text-to-speech",
