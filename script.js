@@ -1,333 +1,319 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Load voices from the server
+    // Elements
+    const textInput = document.getElementById('text-input');
+    const voiceSelect = document.getElementById('voice-select');
+    const submitButton = document.getElementById('submit-button');
+    const clearButton = document.getElementById('clear-button');
+    const audioPlayer = document.getElementById('audio-player');
+    const audioContainer = document.getElementById('audio-container');
+    const downloadButton = document.getElementById('download-button');
+    const settingsToggle = document.getElementById('settings-toggle');
+    const settingsSidebar = document.getElementById('settings-sidebar');
+    const closeSettings = document.getElementById('close-settings');
+    const themeToggle = document.getElementById('theme-toggle');
+    const charCount = document.getElementById('char-count');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const resetSettings = document.getElementById('reset-settings');
+    const applySettings = document.getElementById('apply-settings');
+    
+    // Sliders
+    const stabilitySlider = document.getElementById('stability-slider');
+    const pitchSlider = document.getElementById('pitch-slider');
+    const speedSlider = document.getElementById('speed-slider');
+    const volumeSlider = document.getElementById('volume-slider');
+    
+    // Track current audio URL
+    let currentAudioUrl = '';
+    
+    // Initialize theme
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    updateThemeIcon();
+    
+    // Load available voices
     loadVoicesAndStatus();
     
-    // Initialize theme toggle if it exists
-    initThemeToggle();
+    // Add event listeners
+    textInput.addEventListener('input', updateCharCount);
+    submitButton.addEventListener('click', handleSubmit);
+    clearButton.addEventListener('click', clearText);
+    downloadButton.addEventListener('click', downloadAudio);
+    settingsToggle.addEventListener('click', toggleSettings);
+    closeSettings.addEventListener('click', toggleSettings);
+    themeToggle.addEventListener('click', toggleTheme);
+    resetSettings.addEventListener('click', resetVoiceSettings);
+    applySettings.addEventListener('click', handleSubmit);
     
-    // Add event listeners for buttons
-    const submitButton = document.getElementById('submit-button');
-    if (submitButton) {
-        submitButton.addEventListener('click', handleSubmit);
-    }
+    // Add event listeners for sliders
+    [stabilitySlider, pitchSlider, speedSlider, volumeSlider].forEach(slider => {
+        if (slider) {
+            slider.addEventListener('input', updateSliderValue);
+        }
+    });
     
-    const clearButton = document.getElementById('clear-button');
-    if (clearButton) {
-        clearButton.addEventListener('click', () => {
-            const textInput = document.getElementById('text-input');
-            if (textInput) {
-                textInput.value = '';
-            }
+    // Initialize character count
+    updateCharCount();
+    
+    // Load available voices from the server
+    async function loadVoicesAndStatus() {
+        try {
+            const response = await fetch('/api/voices');
+            const data = await response.json();
             
-            const audioPlayer = document.getElementById('audio-player');
-            if (audioPlayer) {
-                audioPlayer.style.display = 'none';
-                audioPlayer.src = '';
+            if (data && data.voices) {
+                populateVoiceDropdown(data.voices, data.voice_config);
             }
-        });
-    }
-    
-    const playButton = document.getElementById('play-button');
-    if (playButton) {
-        playButton.addEventListener('click', () => {
-            const audioPlayer = document.getElementById('audio-player');
-            if (audioPlayer && audioPlayer.src) {
-                audioPlayer.style.display = 'block';
-                audioPlayer.play();
-            } else {
-                showNotification('No audio to play', 'warning');
-            }
-        });
-    }
-    
-    const saveButton = document.getElementById('save-button');
-    if (saveButton) {
-        saveButton.addEventListener('click', downloadAudio);
-    }
-    
-    // Set up advanced settings panel toggle
-    const advancedSettings = document.getElementById('advanced-settings');
-    if (advancedSettings) {
-        const panelHeader = document.querySelector('.panel-header');
-        if (panelHeader) {
-            panelHeader.addEventListener('click', () => {
-                advancedSettings.classList.toggle('collapsed');
-                const icon = panelHeader.querySelector('.fa-chevron-down');
-                if (icon) {
-                    icon.classList.toggle('fa-chevron-up');
-                }
-            });
+        } catch (error) {
+            console.error('Error loading voices:', error);
         }
     }
     
-    // Initialize range controls
-    initRangeControls();
-});
-
-// Initialize theme toggle
-function initThemeToggle() {
-    const themeToggle = document.createElement('button');
-    themeToggle.id = 'theme-toggle';
-    themeToggle.className = 'theme-toggle';
-    themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-    themeToggle.setAttribute('aria-label', 'Toggle theme');
-    
-    // Add theme toggle button to the body
-    document.body.appendChild(themeToggle);
-    
-    // Set initial theme based on preference
-    const savedTheme = localStorage.getItem('theme') || 
-                       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    
-    // Update icon based on current theme
-    const icon = themeToggle.querySelector('i');
-    if (icon) {
-        icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    // Populate voice dropdown with available voices
+    function populateVoiceDropdown(voices, voiceConfig) {
+        voiceSelect.innerHTML = '';
+        
+        voices.forEach(voiceId => {
+            const voiceInfo = voiceConfig[voiceId];
+            if (voiceInfo) {
+                const option = document.createElement('option');
+                option.value = voiceId;
+                option.textContent = `${voiceInfo.name} (${voiceInfo.accent})`;
+                
+                // Add data attributes for additional info
+                option.dataset.engine = voiceInfo.engine;
+                option.dataset.language = voiceInfo.lang;
+                
+                voiceSelect.appendChild(option);
+            }
+        });
     }
     
-    // Add event listener
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    // Update character count
+    function updateCharCount() {
+        const text = textInput.value;
+        const count = text.length;
+        charCount.textContent = count;
+        
+        // Update progress bar in the sidebar
+        const progressFill = document.querySelector('.progress-fill');
+        const usageText = document.querySelector('.usage-text');
+        
+        if (progressFill && usageText) {
+            const percentage = Math.min((count / 500) * 100, 100);
+            progressFill.style.width = `${percentage}%`;
+            usageText.textContent = `${count}/500 characters`;
+        }
+    }
+    
+    // Handle text-to-speech submission
+    async function handleSubmit() {
+        const text = textInput.value.trim();
+        
+        if (!text) {
+            showNotification('Please enter text to convert to speech.', 'error');
+            return;
+        }
+        
+        const voice = voiceSelect.value;
+        const emotion = getSelectedEmotion();
+        const pitch = pitchSlider ? pitchSlider.value : 1.0;
+        const speed = speedSlider ? speedSlider.value : 1.0;
+        const volume = volumeSlider ? volumeSlider.value : 1.0;
+        
+        // Show loading overlay
+        loadingOverlay.classList.remove('hidden');
+        
+        try {
+            const response = await fetch('/synthesize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text,
+                    voice,
+                    emotion,
+                    pitch,
+                    speed,
+                    volume
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to synthesize speech');
+            }
+            
+            // Get the blob from the response
+            const blob = await response.blob();
+            
+            // Create a URL for the blob
+            const audioUrl = URL.createObjectURL(blob);
+            
+            // Revoke the previous URL to prevent memory leaks
+            if (currentAudioUrl) {
+                URL.revokeObjectURL(currentAudioUrl);
+            }
+            
+            // Store the new URL
+            currentAudioUrl = audioUrl;
+            
+            // Update the audio player
+            audioPlayer.src = audioUrl;
+            audioContainer.style.display = 'block';
+            
+            // Play the audio
+            audioPlayer.play();
+            
+            // Close the settings sidebar if open
+            if (settingsSidebar.classList.contains('open')) {
+                settingsSidebar.classList.remove('open');
+            }
+            
+        } catch (error) {
+            console.error('Error synthesizing speech:', error);
+            showNotification(error.message || 'Failed to synthesize speech', 'error');
+        } finally {
+            // Hide loading overlay
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+    
+    // Clear the text input
+    function clearText() {
+        textInput.value = '';
+        updateCharCount();
+        
+        // Hide audio player
+        audioContainer.style.display = 'none';
+        audioPlayer.pause();
+        audioPlayer.src = '';
+        
+        // Revoke object URL
+        if (currentAudioUrl) {
+            URL.revokeObjectURL(currentAudioUrl);
+            currentAudioUrl = '';
+        }
+    }
+    
+    // Download the generated audio
+    function downloadAudio() {
+        if (!currentAudioUrl) return;
+        
+        const downloadLink = document.createElement('a');
+        downloadLink.href = currentAudioUrl;
+        
+        // Generate a filename based on the current date/time
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        downloadLink.download = `voicecraft_${timestamp}.mp3`;
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+    
+    // Toggle settings sidebar
+    function toggleSettings() {
+        settingsSidebar.classList.toggle('open');
+    }
+    
+    // Toggle theme (light/dark)
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
         
-        if (icon) {
-            icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        }
-    });
-}
-
-// Initialize range controls (speed, pitch, volume)
-function initRangeControls() {
-    const rangeInputs = document.querySelectorAll('input[type="range"]');
-    rangeInputs.forEach(input => {
-        const valueDisplay = input.parentElement.querySelector('.range-value');
-        if (!valueDisplay) return;
-        
-        // Add event listener to update value display
-        input.addEventListener('input', () => {
-            const value = parseFloat(input.value);
-            valueDisplay.textContent = value.toFixed(1);
-        });
-        
-        // Initialize value display
-        const value = parseFloat(input.value);
-        valueDisplay.textContent = value.toFixed(1);
-    });
-}
-
-// Handle form submission
-async function handleSubmit() {
-    const textInput = document.getElementById('text-input');
-    const voiceSelect = document.getElementById('voice-select');
-    const speedRange = document.getElementById('speed-range');
-    const pitchRange = document.getElementById('pitch-range');
-    const volumeRange = document.getElementById('volume-range');
-    const audioPlayer = document.getElementById('audio-player');
-    const emotionSelect = document.getElementById('emotion-select');
-    
-    if (!textInput || !textInput.value.trim()) {
-        showNotification('Please enter some text to synthesize', 'warning');
-        return;
+        updateThemeIcon();
     }
     
-    // Show loading state
-    const submitButton = document.getElementById('submit-button');
-    const originalText = submitButton ? submitButton.innerHTML : '';
-    if (submitButton) {
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        submitButton.disabled = true;
-    }
-    
-    try {
-        // Prepare request parameters
-        const params = {
-            text: textInput.value.trim(),
-            voice: voiceSelect ? voiceSelect.value : 'en-us',
-            speed: speedRange ? speedRange.value : 1.0,
-            pitch: pitchRange ? pitchRange.value : 1.0,
-            volume: volumeRange ? volumeRange.value : 1.0,
-            emotion: emotionSelect ? emotionSelect.value : 'neutral'
-        };
+    // Update theme icon based on current theme
+    function updateThemeIcon() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const themeIcon = themeToggle.querySelector('i');
         
-        // Make API request
-        const response = await fetch('/synthesize', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(params)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
-        }
-        
-        // Get audio data
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        // Update audio player
-        if (audioPlayer) {
-            audioPlayer.src = audioUrl;
-            audioPlayer.style.display = 'block';
-            audioPlayer.play();
-        }
-        
-        showNotification('Speech synthesized successfully', 'success');
-        
-    } catch (error) {
-        console.error('Error synthesizing speech:', error);
-        showNotification('Failed to synthesize speech: ' + error.message, 'error');
-    } finally {
-        // Reset button state
-        if (submitButton) {
-            submitButton.innerHTML = originalText || '<i class="fas fa-play"></i> Synthesize';
-            submitButton.disabled = false;
-        }
-    }
-}
-
-// Load voices from the server
-async function loadVoicesAndStatus() {
-    try {
-        const response = await fetch('/api/voices');
-        if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Update voice select dropdown if available
-        if (data.voices && data.voices.length > 0) {
-            updateVoiceSelect(data.voices, data.details || {});
-        }
-        
-        // Check if Coqui is installed
-        if (data.hasOwnProperty('coqui_installed') && !data.coqui_installed) {
-            showNotification('Coqui TTS not installed. Using basic voices.', 'warning');
-        }
-    } catch (error) {
-        console.error('Error loading voices:', error);
-    }
-}
-
-// Update voice selection dropdown
-function updateVoiceSelect(voices, details) {
-    const voiceSelect = document.getElementById('voice-select');
-    if (!voiceSelect) return;
-    
-    // Clear existing options
-    voiceSelect.innerHTML = '';
-    
-    // Add each voice as an option
-    voices.forEach(voice => {
-        const option = document.createElement('option');
-        option.value = voice.id || voice;
-        
-        // Create display name
-        let displayName = voice.name || voice;
-        if (details[voice.id || voice]) {
-            displayName = details[voice.id || voice].name || displayName;
-            
-            // Add language/accent info if available
-            if (details[voice.id || voice].language) {
-                const language = details[voice.id || voice].language;
-                const accent = details[voice.id || voice].accent;
-                if (accent) {
-                    displayName += ` (${accent})`;
-                } else if (language) {
-                    displayName += ` (${language})`;
-                }
-            }
-        }
-        
-        option.textContent = displayName;
-        voiceSelect.appendChild(option);
-    });
-}
-
-// Download the synthesized audio
-function downloadAudio() {
-    const audioPlayer = document.getElementById('audio-player');
-    
-    if (!audioPlayer || !audioPlayer.src || audioPlayer.src.startsWith('blob:') === false) {
-        showNotification('No audio available to download', 'warning');
-        return;
-    }
-    
-    // Create a download link
-    const downloadLink = document.createElement('a');
-    downloadLink.href = audioPlayer.src;
-    
-    // Set filename - use text input for filename or fallback to default
-    const textInput = document.getElementById('text-input');
-    let filename = 'speech-output.mp3';
-    
-    if (textInput && textInput.value.trim()) {
-        // Use first few words for filename
-        const words = textInput.value.trim().split(/\s+/);
-        if (words.length > 0) {
-            const shortName = words.slice(0, 3).join('-').toLowerCase();
-            // Remove special characters
-            filename = shortName.replace(/[^a-z0-9-]/g, '') + '.mp3';
-            
-            // If filename is too short, use default
-            if (filename.length < 5) {
-                filename = 'speech-output.mp3';
+        if (themeIcon) {
+            if (currentTheme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+            } else {
+                themeIcon.className = 'fas fa-moon';
             }
         }
     }
     
-    downloadLink.download = filename;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
+    // Get the selected emotion
+    function getSelectedEmotion() {
+        const emotionRadios = document.querySelectorAll('input[name="emotion"]');
+        for (const radio of emotionRadios) {
+            if (radio.checked) {
+                return radio.value;
+            }
+        }
+        return 'neutral'; // Default
+    }
     
-    showNotification('Downloading audio file', 'success');
-}
-
-// Show notification message
-function showNotification(message, type = 'info') {
-    const notification = document.getElementById('notification');
-    if (!notification) return;
+    // Update slider value display
+    function updateSliderValue(event) {
+        const slider = event.target;
+        const valueDisplay = slider.nextElementSibling;
+        
+        if (valueDisplay) {
+            if (slider.id === 'stability-slider') {
+                valueDisplay.textContent = `${slider.value}%`;
+            } else {
+                valueDisplay.textContent = slider.value;
+            }
+        }
+    }
     
-    // Set notification text and type
-    notification.textContent = message;
-    notification.className = 'notification';
-    notification.classList.add(type);
+    // Reset voice settings to defaults
+    function resetVoiceSettings() {
+        if (stabilitySlider) stabilitySlider.value = 50;
+        if (pitchSlider) pitchSlider.value = 1.0;
+        if (speedSlider) speedSlider.value = 1.0;
+        if (volumeSlider) volumeSlider.value = 1.0;
+        
+        // Update displays
+        document.querySelectorAll('.slider-value').forEach((valueDisplay, index) => {
+            if (index === 0) {
+                valueDisplay.textContent = '50%';
+            } else {
+                valueDisplay.textContent = '1.0';
+            }
+        });
+        
+        // Reset emotion
+        const neutralEmotion = document.querySelector('input[value="neutral"]');
+        if (neutralEmotion) {
+            neutralEmotion.checked = true;
+        }
+    }
     
     // Show notification
-    notification.style.display = 'block';
-    notification.style.opacity = '1';
-    
-    // Hide after 3 seconds
-    setTimeout(() => {
-        notification.style.opacity = '0';
+    function showNotification(message, type = 'info') {
+        // Create temporary notification element
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Animate in
         setTimeout(() => {
-            notification.style.display = 'none';
-        }, 300);
-    }, 3000);
-}
-
-// Toggle advanced settings panel
-function togglePanel(id) {
-    const panel = document.getElementById(id);
-    if (panel) {
-        panel.classList.toggle('collapsed');
-        const header = panel.previousElementSibling;
-        if (header) {
-            const icon = header.querySelector('i.fas.fa-chevron-down');
-            if (icon) {
-                icon.classList.toggle('fa-chevron-up');
-            }
-        }
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateY(0)';
+        }, 10);
+        
+        // Remove after delay
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateY(20px)';
+            
+            // Remove from DOM after animation completes
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
     }
-}
-
-// Make the handleSubmit function available globally
-window.handleSubmit = handleSubmit;
-window.togglePanel = togglePanel; 
+}); 
