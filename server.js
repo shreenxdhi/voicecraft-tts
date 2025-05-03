@@ -50,6 +50,7 @@ if (!fs.existsSync('uploads')) {
 // Define global variables for TTS engines availability
 let COQUI_INSTALLED = false;
 let FFMPEG_INSTALLED = false;
+let ESPEAK_INSTALLED = false;
 
 // Define available voices based on installed models
 let AVAILABLE_VOICES = [
@@ -521,6 +522,7 @@ async function generateWithGTTS(text, voiceSettings, filepath, volume, speed, pi
 async function checkSystemRequirements() {
     await checkCoquiInstallation();
     await checkFFmpegInstallation();
+    await checkEspeakInstallation();
     
     // Update available voices based on installed models
     await updateAvailableVoices();
@@ -529,6 +531,7 @@ async function checkSystemRequirements() {
     console.log('System status:');
     console.log(`Coqui TTS: ${COQUI_INSTALLED ? '✅ Installed' : '❌ Not installed'}`);
     console.log(`ffmpeg: ${FFMPEG_INSTALLED ? '✅ Installed' : '❌ Not installed'}`);
+    console.log(`espeak: ${ESPEAK_INSTALLED ? '✅ Installed' : '❌ Not installed'}`);
     console.log('Available voices:');
     console.log(AVAILABLE_VOICES);
     console.log('-------------------------------------\n');
@@ -539,6 +542,7 @@ app.get('/api/system-status', (req, res) => {
     res.json({
         coqui_installed: COQUI_INSTALLED,
         ffmpeg_installed: FFMPEG_INSTALLED,
+        espeak_installed: ESPEAK_INSTALLED,
         available_voices: AVAILABLE_VOICES,
         voice_details: VOICE_CONFIG
     });
@@ -596,13 +600,22 @@ async function generateWithCoqui(text, voiceSettings, filepath, volume, speed, p
         let ttsBin, ttsCommand;
         
         // Set a custom models path if it exists
-        const modelsDir = path.join(__dirname, '.models');
+        let modelsDir;
+        if (process.env.TTS_CACHE_DIR) {
+            modelsDir = process.env.TTS_CACHE_DIR;
+        } else {
+            modelsDir = path.join(__dirname, '.models');
+        }
+        
         const modelsPath = fs.existsSync(modelsDir) ? `--custom_models_path ${modelsDir} ` : '';
+        
+        // Set environment variables for the TTS command
+        const envVars = `TTS_CACHE_DIR=${modelsDir} `;
         
         // Detect if we're on Render and use Python module approach
         if (isRender) {
-            // Use Python module directly for Render
-            ttsCommand = `python3 -m TTS.bin.tts --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model} ${modelsPath}`;
+            // Use Python module directly for Render with env vars
+            ttsCommand = `${envVars}python3 -m TTS.bin.tts --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model} ${modelsPath}`;
         } else {
             // Try to find the best way to run TTS locally
             if (process.env.VIRTUAL_ENV) {
@@ -620,9 +633,9 @@ async function generateWithCoqui(text, voiceSettings, filepath, volume, speed, p
             // Fallback to Python module if binary not found
             if (!fs.existsSync(ttsBin)) {
                 console.log("TTS binary not found, using Python module");
-                ttsCommand = `python3 -m TTS.bin.tts --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model} ${modelsPath}`;
+                ttsCommand = `${envVars}python3 -m TTS.bin.tts --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model} ${modelsPath}`;
             } else {
-                ttsCommand = `${ttsBin} --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model} ${modelsPath}`;
+                ttsCommand = `${envVars}${ttsBin} --text "${text.replace(/"/g, '\\"')}" --model_name ${voiceSettings.model} ${modelsPath}`;
             }
         }
         
@@ -752,9 +765,30 @@ function checkCoquiInstallation() {
         const isRender = process.env.RENDER === 'true';
         let ttsCommand;
         
+        // Set cache dir for TTS
+        let modelsDir;
+        if (process.env.TTS_CACHE_DIR) {
+            modelsDir = process.env.TTS_CACHE_DIR;
+        } else {
+            modelsDir = path.join(__dirname, '.models');
+        }
+        
+        // Make sure models directory exists
+        if (!fs.existsSync(modelsDir)) {
+            try {
+                fs.mkdirSync(modelsDir, { recursive: true });
+                console.log(`Created models directory: ${modelsDir}`);
+            } catch (err) {
+                console.error(`Error creating models directory: ${err.message}`);
+            }
+        }
+        
+        // Set environment variables for the TTS command
+        const envVars = `TTS_CACHE_DIR=${modelsDir} `;
+        
         if (isRender) {
             // On Render, use Python module directly
-            ttsCommand = 'python3 -m TTS.bin.list_models';
+            ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
         } else {
             // Try using virtual environment if available
             if (process.env.VIRTUAL_ENV) {
@@ -762,11 +796,11 @@ function checkCoquiInstallation() {
                 const scriptsPath = path.join(process.env.VIRTUAL_ENV, 'Scripts', 'tts');
                 
                 if (fs.existsSync(binPath)) {
-                    ttsCommand = `${binPath} --list_models`;
+                    ttsCommand = `${envVars}${binPath} --list_models`;
                 } else if (fs.existsSync(scriptsPath)) {
-                    ttsCommand = `${scriptsPath} --list_models`;
+                    ttsCommand = `${envVars}${scriptsPath} --list_models`;
                 } else {
-                    ttsCommand = 'python3 -m TTS.bin.list_models';
+                    ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
                 }
             } else {
                 // Try local virtual environment paths
@@ -774,11 +808,11 @@ function checkCoquiInstallation() {
                 const localScriptsPath = './coqui-env-py311/Scripts/tts';
                 
                 if (fs.existsSync(localBinPath)) {
-                    ttsCommand = `${localBinPath} --list_models`;
+                    ttsCommand = `${envVars}${localBinPath} --list_models`;
                 } else if (fs.existsSync(localScriptsPath)) {
-                    ttsCommand = `${localScriptsPath} --list_models`;
+                    ttsCommand = `${envVars}${localScriptsPath} --list_models`;
                 } else {
-                    ttsCommand = 'python3 -m TTS.bin.list_models';
+                    ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
                 }
             }
         }
@@ -809,11 +843,23 @@ async function getAvailableCoquiModels() {
     
     try {
         const isRender = process.env.RENDER === 'true';
+        
+        // Set cache dir for TTS
+        let modelsDir;
+        if (process.env.TTS_CACHE_DIR) {
+            modelsDir = process.env.TTS_CACHE_DIR;
+        } else {
+            modelsDir = path.join(__dirname, '.models');
+        }
+        
+        // Set environment variables for the TTS command
+        const envVars = `TTS_CACHE_DIR=${modelsDir} `;
+        
         let ttsCommand;
         
         if (isRender) {
             // On Render, use Python module directly
-            ttsCommand = 'python3 -m TTS.bin.list_models';
+            ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
         } else {
             // Try using virtual environment if available
             if (process.env.VIRTUAL_ENV) {
@@ -821,11 +867,11 @@ async function getAvailableCoquiModels() {
                 const scriptsPath = path.join(process.env.VIRTUAL_ENV, 'Scripts', 'tts');
                 
                 if (fs.existsSync(binPath)) {
-                    ttsCommand = `${binPath} --list_models`;
+                    ttsCommand = `${envVars}${binPath} --list_models`;
                 } else if (fs.existsSync(scriptsPath)) {
-                    ttsCommand = `${scriptsPath} --list_models`;
+                    ttsCommand = `${envVars}${scriptsPath} --list_models`;
                 } else {
-                    ttsCommand = 'python3 -m TTS.bin.list_models';
+                    ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
                 }
             } else {
                 // Try local virtual environment paths
@@ -833,11 +879,11 @@ async function getAvailableCoquiModels() {
                 const localScriptsPath = './coqui-env-py311/Scripts/tts';
                 
                 if (fs.existsSync(localBinPath)) {
-                    ttsCommand = `${localBinPath} --list_models`;
+                    ttsCommand = `${envVars}${localBinPath} --list_models`;
                 } else if (fs.existsSync(localScriptsPath)) {
-                    ttsCommand = `${localScriptsPath} --list_models`;
+                    ttsCommand = `${envVars}${localScriptsPath} --list_models`;
                 } else {
-                    ttsCommand = 'python3 -m TTS.bin.list_models';
+                    ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
                 }
             }
         }
@@ -912,6 +958,7 @@ app.get('/api/voices', async (req, res) => {
             voices: AVAILABLE_VOICES,
             coqui_installed: COQUI_INSTALLED,
             ffmpeg_installed: FFMPEG_INSTALLED,
+            espeak_installed: ESPEAK_INSTALLED,
             voice_config: VOICE_CONFIG
         });
     } catch (error) {
@@ -936,11 +983,52 @@ app.get('/api/voices', (req, res) => {
 
 // Check if Coqui TTS is installed
 app.get('/api/check-coqui', (req, res) => {
-    // Use the full path to tts in the virtual environment
-    const ttsCommand = process.env.VIRTUAL_ENV 
-        ? `${process.env.VIRTUAL_ENV}/bin/tts --list_models` 
-        : './coqui-env-py311/bin/tts --list_models';
-        
+    const isRender = process.env.RENDER === 'true';
+    
+    // Set cache dir for TTS
+    let modelsDir;
+    if (process.env.TTS_CACHE_DIR) {
+        modelsDir = process.env.TTS_CACHE_DIR;
+    } else {
+        modelsDir = path.join(__dirname, '.models');
+    }
+    
+    // Set environment variables for the TTS command
+    const envVars = `TTS_CACHE_DIR=${modelsDir} `;
+    
+    let ttsCommand;
+    
+    if (isRender) {
+        // On Render, use Python module directly
+        ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
+    } else {
+        // Try using virtual environment if available
+        if (process.env.VIRTUAL_ENV) {
+            const binPath = path.join(process.env.VIRTUAL_ENV, 'bin', 'tts');
+            const scriptsPath = path.join(process.env.VIRTUAL_ENV, 'Scripts', 'tts');
+            
+            if (fs.existsSync(binPath)) {
+                ttsCommand = `${envVars}${binPath} --list_models`;
+            } else if (fs.existsSync(scriptsPath)) {
+                ttsCommand = `${envVars}${scriptsPath} --list_models`;
+            } else {
+                ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
+            }
+        } else {
+            // Try local virtual environment paths
+            const localBinPath = './coqui-env-py311/bin/tts';
+            const localScriptsPath = './coqui-env-py311/Scripts/tts';
+            
+            if (fs.existsSync(localBinPath)) {
+                ttsCommand = `${envVars}${localBinPath} --list_models`;
+            } else if (fs.existsSync(localScriptsPath)) {
+                ttsCommand = `${envVars}${localScriptsPath} --list_models`;
+            } else {
+                ttsCommand = `${envVars}python3 -m TTS.bin.list_models`;
+            }
+        }
+    }
+    
     exec(ttsCommand, (error, stdout, stderr) => {
         if (error) {
             res.json({ 
@@ -950,7 +1038,8 @@ app.get('/api/check-coqui', (req, res) => {
         } else {
             res.json({ 
                 installed: true,
-                version: "Coqui TTS installed"
+                version: "Coqui TTS installed",
+                models: stdout.split('\n').filter(line => line.includes('[already downloaded]')).length
             });
         }
     });
@@ -1203,6 +1292,26 @@ function checkFFmpegInstallation() {
                 FFMPEG_INSTALLED = true;
             }
             resolve(FFMPEG_INSTALLED);
+        });
+    });
+}
+
+// Check for espeak installation
+function checkEspeakInstallation() {
+    return new Promise((resolve) => {
+        exec('espeak --version || espeak-ng --version', (error, stdout) => {
+            if (error) {
+                console.log('⚠️ espeak/espeak-ng is not installed. Coqui TTS may not work correctly.');
+                console.log('To install espeak:');
+                console.log('- macOS: brew install espeak');
+                console.log('- Ubuntu/Debian: sudo apt-get install espeak-ng');
+                console.log('- Windows: Download from https://github.com/espeak-ng/espeak-ng/releases');
+                ESPEAK_INSTALLED = false;
+            } else {
+                console.log('✅ espeak/espeak-ng is installed.');
+                ESPEAK_INSTALLED = true;
+            }
+            resolve(ESPEAK_INSTALLED);
         });
     });
 }

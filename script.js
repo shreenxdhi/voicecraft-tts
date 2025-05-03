@@ -62,9 +62,24 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data && data.voices) {
                 populateVoiceDropdown(data.voices, data.voice_config);
+                
+                // Check if Coqui is installed and update UI accordingly
+                if (data.coqui_installed) {
+                    console.log("Coqui TTS is installed and available");
+                } else {
+                    console.log("Coqui TTS is not available, some high-quality voices will not be accessible");
+                    showNotification("Some high-quality voices are not available. Using Google TTS voices only.", "warning");
+                }
+                
+                // Check if espeak is installed and notify if not
+                if (data.espeak_installed === false) {
+                    console.log("Espeak not installed - Coqui TTS voices may not work properly");
+                    showNotification("espeak not installed - Coqui voices may sound robotic", "warning");
+                }
             }
         } catch (error) {
             console.error('Error loading voices:', error);
+            showNotification('Error loading voices. Some features may be limited.', 'error');
         }
     }
     
@@ -142,6 +157,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to synthesize speech');
+            }
+            
+            // Check for fallback headers
+            const fallbackReason = response.headers.get('X-TTS-Fallback');
+            if (fallbackReason) {
+                console.log("TTS Fallback used:", fallbackReason);
+                showNotification("Using fallback voice. " + fallbackReason, "warning");
+            }
+            
+            // Check for errors
+            const ttsError = response.headers.get('X-TTS-Error');
+            if (ttsError) {
+                console.error("TTS Error:", ttsError);
+                showNotification("TTS Error: " + ttsError, "error");
             }
             
             // Get the blob from the response

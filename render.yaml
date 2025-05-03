@@ -3,13 +3,14 @@ services:
     name: shree-tts
     env: node
     buildCommand: >
-      apt-get update && apt-get install -y ffmpeg python3-pip python3-dev espeak libsndfile1 &&
+      apt-get update && 
+      apt-get install -y ffmpeg python3-pip python3-dev espeak espeak-ng libsndfile1 &&
       python3 -m pip install --upgrade pip &&
       python3 -m pip install TTS &&
       mkdir -p .models &&
       python3 -m TTS.bin.list_models &&
-      python3 -m TTS.bin.tts --text "Downloading models for Coqui TTS" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav &&
-      python3 -m TTS.bin.tts --text "Testing VCTK model" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav &&
+      TTS_CACHE_DIR=.models python3 -m TTS.bin.tts --text "Downloading models for Coqui TTS" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav &&
+      TTS_CACHE_DIR=.models python3 -m TTS.bin.tts --text "Testing VCTK model" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav &&
       npm install
     startCommand: npm run start-render
     envVars:
@@ -27,6 +28,8 @@ services:
         value: /opt/render/project
       - key: RENDER
         value: "true"
+      - key: TTS_CACHE_DIR
+        value: "/opt/render/project/.models"
       # Firebase Client Configuration
       - key: NEXT_PUBLIC_FIREBASE_API_KEY
         sync: false
