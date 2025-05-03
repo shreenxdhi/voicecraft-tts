@@ -1,26 +1,15 @@
 {
-  "name": "vocalith",
+  "name": "voicecraft-tts",
   "version": "1.0.0",
   "description": "Modern Text-to-Speech application with AI-powered natural voices",
-  "main": "server.js",
+  "main": "render-server.js",
   "scripts": {
-    "start": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && node server.js",
-    "start-windows": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && node server.js",
-    "dev": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && nodemon server.js",
-    "install-coqui": "pip install TTS",
-    "download-models": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && $PWD/coqui-env-py311/bin/tts --list_models && $PWD/coqui-env-py311/bin/tts --text \"Test\" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav && $PWD/coqui-env-py311/bin/tts --text \"Test\" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav && $PWD/coqui-env-py311/bin/tts --text \"Test\" --model_name tts_models/en/jenny/jenny --out_path test_jenny.wav",
-    "download-models-win": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && %CD%\\coqui-env-py311\\Scripts\\tts --list_models && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/jenny/jenny --out_path test_jenny.wav",
-    "start-no-auth": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && DEV_MODE=true node server.js --dev",
-    "start-with-coqui": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && node server.js --dev",
-    "start-with-coqui-win": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && node server.js --dev",
-    "start-render": "RENDER=true TTS_CACHE_DIR=/opt/render/project/.models node server.js"
+    "start": "node render-server.js",
+    "dev": "nodemon render-server.js",
+    "install-coqui": "pip install TTS==0.22.0"
   },
   "engines": {
     "node": ">=14.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/shreenxdhi/voicecraft-tts"
   },
   "keywords": [
     "text-to-speech",
@@ -31,31 +20,15 @@
     "ai",
     "natural-voices"
   ],
-  "author": "Shreenidhi (https://github.com/shreenxdhi)",
+  "author": "Shreenidhi",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/shreenxdhi/voicecraft-tts/issues"
-  },
-  "homepage": "https://github.com/shreenxdhi/voicecraft-tts#readme",
   "dependencies": {
-    "autoprefixer": "^10.4.21",
-    "axios": "^1.9.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "firebase": "^11.6.1",
-    "firebase-admin": "^13.3.0",
     "gtts": "^0.2.1",
-    "multer": "^1.4.5-lts.1",
-    "next": "^15.3.1",
-    "postcss": "^8.5.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "tailwindcss": "^4.1.4"
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
-  },
-  "optionalDependencies": {
-    "coqui-tts": "*"
   }
 }

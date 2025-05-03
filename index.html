@@ -16,9 +16,9 @@
                 <h1 class="logo">VoiceCraft</h1>
             </div>
             <nav class="main-nav">
-                <a href="#" class="nav-item active">Text to Speech</a>
-                <a href="#" class="nav-item">History</a>
-                <a href="#" class="nav-item">Voice Library</a>
+                <a href="#" class="nav-item active" data-tab="tts-tab">Text to Speech</a>
+                <a href="#" class="nav-item" data-tab="history-tab">History</a>
+                <a href="#" class="nav-item" data-tab="voice-library-tab">Voice Library</a>
             </nav>
             <div class="header-actions">
                 <button class="theme-toggle" id="theme-toggle">
@@ -29,7 +29,7 @@
 
         <!-- Main content -->
         <main class="main-content">
-            <div class="text-to-speech-container">
+            <div class="text-to-speech-container tab-content active" id="tts-tab">
                 <div class="input-section">
                     <div class="wave-background"></div>
                     <div class="text-editor-container">
@@ -39,9 +39,9 @@
                         </div>
                     </div>
                     
-                    <div class="voice-selection-bar">
-                        <div class="voice-dropdown-container">
-                            <select id="voice-select" class="voice-dropdown">
+                    <div class="voice-selection-bar" style="display: flex !important;">
+                        <div class="voice-dropdown-container" style="display: block !important;">
+                            <select id="voice-select" class="voice-dropdown" style="width: 100% !important; display: block !important; visibility: visible !important;">
                                 <!-- Voice options will be populated by JavaScript -->
                             </select>
                         </div>
@@ -79,6 +79,77 @@
                             <i class="fas fa-download"></i>
                             <span>Download</span>
                         </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- History Tab -->
+            <div class="history-container tab-content" id="history-tab">
+                <div class="history-header">
+                    <h2>Recent Generations</h2>
+                    <p>Your recent text-to-speech generations will appear here.</p>
+                </div>
+                <div class="history-list">
+                    <div class="history-item" id="history-placeholder">
+                        <div class="history-placeholder-text">
+                            <i class="fas fa-history"></i>
+                            <p>No history yet. Generate some audio first!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Voice Library Tab -->
+            <div class="voice-library-container tab-content" id="voice-library-tab">
+                <div class="voice-library-header">
+                    <h2>Available Premium Voices</h2>
+                    <p>Explore our high-quality AI voices for your projects.</p>
+                </div>
+                <div class="voice-cards">
+                    <div class="voice-card">
+                        <div class="voice-card-header">
+                            <h3>Aria</h3>
+                            <span class="voice-badge">American Female</span>
+                        </div>
+                        <div class="voice-description">
+                            <p>Premium American female voice with excellent clarity and natural intonation.</p>
+                        </div>
+                        <div class="voice-sample">
+                            <button class="sample-button" data-voice="vits-ljspeech">
+                                <i class="fas fa-play"></i>
+                                <span>Sample</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="voice-card">
+                        <div class="voice-card-header">
+                            <h3>Thomas</h3>
+                            <span class="voice-badge">British Male</span>
+                        </div>
+                        <div class="voice-description">
+                            <p>Clear and professional British male voice with excellent articulation.</p>
+                        </div>
+                        <div class="voice-sample">
+                            <button class="sample-button" data-voice="vits-vctk-male">
+                                <i class="fas fa-play"></i>
+                                <span>Sample</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="voice-card">
+                        <div class="voice-card-header">
+                            <h3>Sophia</h3>
+                            <span class="voice-badge">British Female</span>
+                        </div>
+                        <div class="voice-description">
+                            <p>Premium British female voice with natural intonation.</p>
+                        </div>
+                        <div class="voice-sample">
+                            <button class="sample-button" data-voice="vits-vctk-female">
+                                <i class="fas fa-play"></i>
+                                <span>Sample</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -181,6 +252,44 @@
     </div>
     
     <!-- Scripts -->
-    <script src="script.js"></script>
+    <script src="script.js?v=2"></script>
+    
+    <!-- Debug Script -->
+    <script>
+        // Debug script to directly check voices API
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('DEBUG: Checking voices API directly');
+                const response = await fetch('/voices');
+                const data = await response.json();
+                console.log('DEBUG: Voices API response:', data);
+                
+                // Try to directly populate the voice dropdown
+                const voiceSelect = document.getElementById('voice-select');
+                if (voiceSelect) {
+                    console.log('DEBUG: Found voice-select dropdown, populating it directly');
+                    voiceSelect.innerHTML = '';
+                    
+                    Object.entries(data.voices).forEach(([voiceId, voiceInfo]) => {
+                        const option = document.createElement('option');
+                        option.value = voiceId;
+                        option.textContent = `${voiceInfo.name} (${voiceInfo.accent})`;
+                        voiceSelect.appendChild(option);
+                    });
+                    
+                    if (data.defaultVoice) {
+                        voiceSelect.value = data.defaultVoice;
+                    }
+                } else {
+                    console.error('DEBUG: Could not find voice-select dropdown element');
+                }
+            } catch (error) {
+                console.error('DEBUG: Error accessing voices API:', error);
+            }
+        });
+    </script>
+    
+    <!-- Advanced Debug Script - run in browser console for detailed diagnostics -->
+    <script src="browser-debug.js"></script>
 </body>
 </html> 

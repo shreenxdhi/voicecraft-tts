@@ -1,18 +1,26 @@
 services:
   - type: web
-    name: shree-tts
+    name: voicecraft-tts
     env: node
+    plan: free
     buildCommand: >
-      apt-get update && 
-      apt-get install -y ffmpeg python3-pip python3-dev espeak espeak-ng libsndfile1 &&
-      python3 -m pip install --upgrade pip &&
-      python3 -m pip install TTS &&
-      mkdir -p .models &&
-      python3 -m TTS.bin.list_models &&
-      TTS_CACHE_DIR=.models python3 -m TTS.bin.tts --text "Downloading models for Coqui TTS" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav &&
-      TTS_CACHE_DIR=.models python3 -m TTS.bin.tts --text "Testing VCTK model" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav &&
+      apt-get update && apt-get install -y ffmpeg python3-pip python3-dev espeak espeak-ng libsndfile1 &&
+      pip3 install TTS==0.22.0 && 
+      chmod +x download-models.sh && ./download-models.sh &&
       npm install
-    startCommand: npm run start-render
+    startCommand: node render-server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.1
+      - key: RENDER
+        value: "true"
+      - key: PORT
+        value: 3001
+      - key: VIRTUAL_ENV
+        value: /opt/render/project
+      - key: TTS_CACHE_DIR
+        value: "/opt/render/project/.models"
+    autoDeploy: true
     envVars:
       # Optional API keys for enhanced features
       - key: OPENAI_API_KEY
@@ -21,15 +29,6 @@ services:
       - key: HUGGING_FACE_API_KEY
         sync: false
         required: false
-      - key: PORT
-        value: 10000
-      # Add Coqui environment variables
-      - key: VIRTUAL_ENV
-        value: /opt/render/project
-      - key: RENDER
-        value: "true"
-      - key: TTS_CACHE_DIR
-        value: "/opt/render/project/.models"
       # Firebase Client Configuration
       - key: NEXT_PUBLIC_FIREBASE_API_KEY
         sync: false
