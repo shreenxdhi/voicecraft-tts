@@ -189,6 +189,37 @@ Before deploying to production:
 2. Consider implementing a caching strategy for generated audio files
 3. For production environments, you may want to use a process manager like PM2
 
+## Deploying to Render
+
+This application is configured to work with Render for hosting. The Coqui TTS features are fully supported on Render with the included configuration.
+
+### Steps for Render Deployment
+
+1. Fork this repository to your GitHub account
+2. Create a new Web Service on Render
+3. Connect your GitHub repository
+4. Render will automatically use the `render.yaml` configuration file
+
+### Render Configuration
+
+The `render.yaml` file includes:
+
+- Installation of required system dependencies (ffmpeg, espeak, etc.)
+- Python environment setup with TTS package installation
+- Downloading of Coqui TTS models during build
+- Setting up appropriate environment variables
+
+### Troubleshooting Coqui TTS on Render
+
+If you encounter issues with Coqui TTS voices on Render:
+
+1. Check the build logs to ensure the models were downloaded successfully
+2. Verify that the `espeak` dependency was installed correctly
+3. Ensure you have enough disk space on your Render instance for the models
+4. Try rebuilding the deployment if models were not downloaded completely
+
+The application has intelligent fallback to Google TTS voices when Coqui fails, so it will remain functional even if there are issues with the Coqui setup.
+
 ## License
 
 [MIT License](LICENSE)

@@ -2,8 +2,16 @@ services:
   - type: web
     name: shree-tts
     env: node
-    buildCommand: apt-get update && apt-get install -y ffmpeg && npm install
-    startCommand: node server.js
+    buildCommand: >
+      apt-get update && apt-get install -y ffmpeg python3-pip python3-dev espeak libsndfile1 &&
+      python3 -m pip install --upgrade pip &&
+      python3 -m pip install TTS &&
+      mkdir -p .models &&
+      python3 -m TTS.bin.list_models &&
+      python3 -m TTS.bin.tts --text "Downloading models for Coqui TTS" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav &&
+      python3 -m TTS.bin.tts --text "Testing VCTK model" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav &&
+      npm install
+    startCommand: npm run start-render
     envVars:
       # Optional API keys for enhanced features
       - key: OPENAI_API_KEY
@@ -14,6 +22,11 @@ services:
         required: false
       - key: PORT
         value: 10000
+      # Add Coqui environment variables
+      - key: VIRTUAL_ENV
+        value: /opt/render/project
+      - key: RENDER
+        value: "true"
       # Firebase Client Configuration
       - key: NEXT_PUBLIC_FIREBASE_API_KEY
         sync: false

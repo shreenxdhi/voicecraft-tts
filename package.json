@@ -12,7 +12,8 @@
     "download-models-win": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && %CD%\\coqui-env-py311\\Scripts\\tts --list_models && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/ljspeech/glow-tts --out_path test_ljspeech.wav && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/vctk/vits --speaker_idx p273 --out_path test_vctk.wav && %CD%\\coqui-env-py311\\Scripts\\tts --text \"Test\" --model_name tts_models/en/jenny/jenny --out_path test_jenny.wav",
     "start-no-auth": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && DEV_MODE=true node server.js --dev",
     "start-with-coqui": "export VIRTUAL_ENV=$PWD/coqui-env-py311 && node server.js --dev",
-    "start-with-coqui-win": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && node server.js --dev"
+    "start-with-coqui-win": "set VIRTUAL_ENV=%CD%\\coqui-env-py311 && node server.js --dev",
+    "start-render": "RENDER=true node server.js"
   },
   "engines": {
     "node": ">=14.0.0"
